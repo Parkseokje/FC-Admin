@@ -1,13 +1,13 @@
 /**
  * Created by yijaejun on 30/11/2016.
  */
-'use strict';
+"use strict";
 requirejs(
-	[
+  [
 		// 'jquery'
 		// ,'moment'
 		// ,'excellentExport'
-        'common',
+    "common",
 		// ,'bootstrap'
 		// ,'jquery_datatable'
 		// ,'bootstrap_datatable'
@@ -16,12 +16,12 @@ requirejs(
 		// ,'jquery_ui'
 		// ,'adminLTE'
 		// ,'fastclick'		
-	],
+  ],
 	function (Util) {
 		// avoid to confliction between jquery tooltip and bootstrap tooltip
 		// $.widget.bridge('uibutton', $.ui.button);
 
-        Util.initDataTable($('#table_assignment_history'));
+  Util.initDataTable($("#table_assignment_history"));
 
 		//// Download csv
 		//$('.btn_download_csv_home').bind('click', function (){
@@ -108,4 +108,4 @@ requirejs(
 
 
 
-	}); // end of func
+}); // end of func

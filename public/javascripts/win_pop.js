@@ -1,15 +1,15 @@
 /**
  * Created by yijaejun on 30/11/2016.
  */
-'use strict';
+"use strict";
 requirejs(
-	[
-		'jquery'
-		,'common'
-	],
+  [
+    "jquery"
+		,"common"
+  ],
 	function ($, Util) {
 
 		// Util.createWindowPopup();
 
 
-	}); // end of func
+}); // end of func

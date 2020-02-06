@@ -1,5 +1,5 @@
-var mysql = require('mysql');
-var config = require('../secret/db_info').dev;
+var mysql = require("mysql");
+var config = require("../secret/db_info").dev;
 const pool = mysql.createPool({
   host: config.host,
   port: config.port,

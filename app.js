@@ -40,12 +40,14 @@ app.use('/static', express.static(path.join(__dirname, '/public')));
 global.PROJ_TITLE = 'Orangenamu, Backoffice ';
 global.AppRoot = process.env.PWD;
 
-app.use(cookieSession({
-  keys: ['FC_Admin'],
-  cookie: {
-    maxAge: 1000 * 60 // * 60 // 유효기간 1시간
-  }
-}));
+app.use(
+  cookieSession({
+    keys: ['FC_Admin'],
+    cookie: {
+      maxAge: 1000 * 60 // * 60 // 유효기간 1시간
+    }
+  })
+);
 
 app.use(flash());
 app.use(passport.initialize());
@@ -100,6 +102,5 @@ app.use(function (err, req, res, next) {
     error: {}
   });
 });
-
 
 module.exports = app;

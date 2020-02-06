@@ -1,22 +1,22 @@
 /**
  * Created by yijaejun on 01/12/2016.
  */
-'use strict';
+"use strict";
 requirejs(
-	[
-		'jquery'
-		,'jqueryCookie'
-	],
+  [
+    "jquery"
+		,"jqueryCookie"
+  ],
 	function (jQuery) {
-		var $ = jQuery;
-		var
-			remember = $('#remember'),
-			agent = $('#agent'),
-			password = $('#password'),
+  var $ = jQuery;
+  var
+    remember = $("#remember"),
+    agent = $("#agent"),
+    password = $("#password"),
 		//	form_agent_login = $('#form-agent-login'),
-			btn_agent_login =$('#btn-agent-login');
+    btn_agent_login =$("#btn-agent-login");
 
-    checkCookie();
+  checkCookie();
 
 		/**
 		 * TODO 1. 쿠키를 저장한 사용자는 agent값을 가져온다, 저장하지 않은 사용자는 가져오지 않는다
@@ -26,45 +26,45 @@ requirejs(
 		 *
 		 *
 		 * */
-		btn_agent_login.bind('click', function(){
+  btn_agent_login.bind("click", function(){
 			/* 쿠키 값이 없고, remember me checked 되있는 경우에 쿠키 값을 저장한다*/
-			if($.cookie('agent')=== undefined && remember.prop('checked')){
-				setCookie(agent.val());
-			}
-		});
+    if($.cookie("agent")=== undefined && remember.prop("checked")){
+      setCookie(agent.val());
+    }
+  });
 
-		remember.change('click', function(){
-			if(!$(this).prop('checked')){
-				if($.cookie('agent') !=undefined){ /*쿠키 값이 있고, remember가 체크 되있는 경우에 쿠키 삭제 가능*/
-					removeCookie();
-				}
-			}
-		});
+  remember.change("click", function(){
+    if(!$(this).prop("checked")){
+      if($.cookie("agent") !=undefined){ /*쿠키 값이 있고, remember가 체크 되있는 경우에 쿠키 삭제 가능*/
+        removeCookie();
+      }
+    }
+  });
 
-		function setCookie(agent){
-			$.cookie('agent', agent);
-		}
+  function setCookie(agent){
+    $.cookie("agent", agent);
+  }
 
-		function getCookie(){
-			agent.val($.cookie('agent'));
-		}
+  function getCookie(){
+    agent.val($.cookie("agent"));
+  }
 
-		function checkCookie(){
-			if($.cookie('agent')=== undefined){
-				remember.prop('checked', false);
-			}else{
-				remember.prop('checked', true);
-				getCookie();
-			}
-		}
+  function checkCookie(){
+    if($.cookie("agent")=== undefined){
+      remember.prop("checked", false);
+    }else{
+      remember.prop("checked", true);
+      getCookie();
+    }
+  }
 
-		function removeCookie(){
-			var removeCookie = confirm('저장된 아이디를 삭제하시겠습니까?');
-			if(removeCookie){
-				$.removeCookie('agent');
-			}
-		}
+  function removeCookie(){
+    var removeCookie = confirm("저장된 아이디를 삭제하시겠습니까?");
+    if(removeCookie){
+      $.removeCookie("agent");
+    }
+  }
 
 
-	} // end of function
+} // end of function
 );

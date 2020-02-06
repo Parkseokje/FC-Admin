@@ -1,16 +1,19 @@
-var QUERY = require('../database/query');
-var async = require('async');
-const pool = require('../commons/db_conn_pool');
+var QUERY = require("../database/query");
+var async = require("async");
+const pool = require("../commons/db_conn_pool");
 var CourseService = {};
 
 /**
  * 강의를 비활성화 한다.
  * _id: course 테이블의 id
  */
-CourseService.deactivateById = function (_id, _callback) {
-  pool.getConnection(function (err, connection) {
+CourseService.deactivateById = function(_id, _callback) {
+  pool.getConnection(function(err, connection) {
     if (err) throw err;
-    connection.query(QUERY.COURSE.DisableCourseById, [_id], function (err, data) {
+    connection.query(QUERY.COURSE.DisableCourseById, [_id], function(
+      err,
+      data
+    ) {
       connection.release();
       if (err) throw err;
       _callback(err, null);
@@ -22,10 +25,13 @@ CourseService.deactivateById = function (_id, _callback) {
  * 강사를 비활성화 한다.
  * _id: teacher 테이블의 id
  */
-CourseService.deactivateTeacherById = function (_id, _callback) {
-  pool.getConnection(function (err, connection) {
+CourseService.deactivateTeacherById = function(_id, _callback) {
+  pool.getConnection(function(err, connection) {
     if (err) throw err;
-    connection.query(QUERY.COURSE.DisableTeacherById, [_id], function (err, data) {
+    connection.query(QUERY.COURSE.DisableTeacherById, [_id], function(
+      err,
+      data
+    ) {
       connection.release();
       if (err) throw err;
       _callback(err, null);
@@ -35,132 +41,123 @@ CourseService.deactivateTeacherById = function (_id, _callback) {
 
 /**
  * 퀴즈 보기를 입력/수정을 수행하는 내부함수
- * 
+ *
  * @param {object} option
  * @param {any} callback
  */
-function saveQuizOption (data, callback) {
-    
-    var _query = null;
+function saveQuizOption(data, callback) {
+  var _query = null;
 
-    if (data.id) {
-        // 수정
-        _query = 
-            CourseService.connection.query(QUERY.COURSE.UpdateQuizOption, [
-                    data.option, 
-                    data.iscorrect,
-                    data.order,
-                    data.id
-                ], 
-                function (err, data) {
-                    // console.log(_query.sql);
-                    callback(err, data); // results[1]
-                }
-            );
-    } else {
-        // 입력
-        _query = 
-            CourseService.connection.query(QUERY.COURSE.CreateQuizOption, data, function (err, data) {
-                // console.log(_query.sql);
-                callback(err, data); // results[1]
-            });
-    }
-
+  if (data.id) {
+    // 수정
+    _query = CourseService.connection.query(
+      QUERY.COURSE.UpdateQuizOption,
+      [data.option, data.iscorrect, data.order, data.id],
+      function(err, data) {
+        // console.log(_query.sql);
+        callback(err, data); // results[1]
+      }
+    );
+  } else {
+    // 입력
+    _query = CourseService.connection.query(
+      QUERY.COURSE.CreateQuizOption,
+      data,
+      function(err, data) {
+        // console.log(_query.sql);
+        callback(err, data); // results[1]
+      }
+    );
+  }
 }
 
 /**
  * 퀴즈 보기를 입력/수정한다.
  */
-CourseService.InsertOrUpdateQuizOptions = function (connection, data, callback) {
-
-    CourseService.connection = connection;
-    async.each(data, saveQuizOption, function (err, data) {
-        callback(err, data);
-    });
-
+CourseService.InsertOrUpdateQuizOptions = function(connection, data, callback) {
+  CourseService.connection = connection;
+  async.each(data, saveQuizOption, function(err, data) {
+    callback(err, data);
+  });
 };
 
 /**
  * 퀴즈리스트를 가공한다.
  */
-CourseService.makeQuizList = function (quiz_list) {
+CourseService.makeQuizList = function(quiz_list) {
+  var quiz_id = null;
+  var return_list = [];
 
-    var quiz_id = null;
-    var return_list = [];            
+  // 데이터를 가공한다.
+  // 퀴즈 별도 obj 로 분리.
+  // 보기 array 형태로 퀴즈별로 할당
+  quiz_list.forEach(function(quiz) {
+    if (quiz_id !== quiz.quiz_id) {
+      var quizdata = {};
 
-    // 데이터를 가공한다.
-    // 퀴즈 별도 obj 로 분리.
-    // 보기 array 형태로 퀴즈별로 할당
-    quiz_list.forEach(function (quiz) {
-        
-        if (quiz_id !== quiz.quiz_id) {
-            
-            var quizdata = {};
-            
-            switch (quiz.quiz_type) {
-                case "A": // 단답형       
-                    quizdata = {
-                        type: quiz.type,
-                        quiz_id : quiz.quiz_id,
-                        quiz_type: quiz.quiz_type,
-                        question: quiz.question,
-                        answer: quiz.answer_desc,
-                        order: quiz.quiz_order
-                    };
-                    break;
+      switch (quiz.quiz_type) {
+      case "A": // 단답형
+        quizdata = {
+          type: quiz.type,
+          quiz_id: quiz.quiz_id,
+          quiz_type: quiz.quiz_type,
+          question: quiz.question,
+          answer: quiz.answer_desc,
+          order: quiz.quiz_order
+        };
+        break;
 
-                case "B": // 선택형    
-                case "C": // 다답형      
-                    quizdata = {
-                        type: quiz.type,
-                        quiz_id : quiz.quiz_id,
-                        quiz_type: quiz.quiz_type,
-                        question: quiz.question,
-                        answer: [],
-                        order: quiz.quiz_order,
-                        option_group_id: quiz.option_group_id,
-                        options: []
-                    };
+      case "B": // 선택형
+      case "C": // 다답형
+        quizdata = {
+          type: quiz.type,
+          quiz_id: quiz.quiz_id,
+          quiz_type: quiz.quiz_type,
+          question: quiz.question,
+          answer: [],
+          order: quiz.quiz_order,
+          option_group_id: quiz.option_group_id,
+          options: []
+        };
 
-                    var optiondata = quiz_list.filter(function (data) {
-                        return data.quiz_id == quiz.quiz_id && data.option !== null;
-                    });
-                    
-                    if (optiondata) {
-                        for (var index = 0; index < optiondata.length; index++) {
-                            var option = optiondata[index];
+        var optiondata = quiz_list.filter(function(data) {
+          return data.quiz_id == quiz.quiz_id && data.option !== null;
+        });
 
-                            if (option.iscorrect) {
-                                quizdata.answer.push(option.option);
-                            }
+        if (optiondata) {
+          for (var index = 0; index < optiondata.length; index++) {
+            var option = optiondata[index];
 
-                            quizdata.options.push ({
-                                id: option.option_id,
-                                opt_id: option.option_group_id,
-                                option: option.option,
-                                iscorrect: option.iscorrect,
-                                order: option.option_order
-                            });
-                        }
-
-                        quizdata.answer = quizdata.answer.join(", ");
-                    }
-
-                    break;     
-                                                
-                default:
-                    break;
+            if (option.iscorrect) {
+              quizdata.answer.push(option.option);
             }
 
-            // 마지막 quiz_id 를 임시 저장한다.
-            quiz_id = quiz.quiz_id;
-            // 퀴즈를 리스트에 입력한다.
-            return_list.push(quizdata);
-        }
-    });
-    
-    return return_list;   
+            quizdata.options.push({
+              id: option.option_id,
+              opt_id: option.option_group_id,
+              option: option.option,
+              iscorrect: option.iscorrect,
+              order: option.option_order
+            });
+          }
 
+          quizdata.answer = quizdata.answer.join(", ");
+        }
+
+        break;
+
+      default:
+        break;
+      }
+
+      // 마지막 quiz_id 를 임시 저장한다.
+      quiz_id = quiz.quiz_id;
+      // 퀴즈를 리스트에 입력한다.
+      return_list.push(quizdata);
+    }
+  });
+
+  return return_list;
 };
 
 module.exports = CourseService;
