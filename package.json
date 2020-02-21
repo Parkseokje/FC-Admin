@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "nodemon ./bin/www",
     "build": "gulp",
+    "deploy-setup": "pm2 deploy production setup",
+    "deploy": "pm2 deploy production update",
     "client": "nodemon ./bin/www nodemon -e hbs",
     "fix": "prettier --write ./**/*.js",
     "lint": "eslint ./**/*.js"
