@@ -152,7 +152,7 @@ gulp.task("copy-css", () => {
       DIR.SRC + "/vendor/" + "aquaplayer/css/nplayer_res.css",
       DIR.SRC + "/vendor/" + "fine-uploader/fine-uploader/fine-uploader-new.css"
     ])
-    .pipe(cleanCSS({ compatibility: "ie8" }))
+    .pipe(cleanCSS({ compatibility: "ie8", rebase: false }))
     .pipe(gulp.dest(DIR.DEST + "/stylesheets/"));
 });
 
@@ -211,8 +211,8 @@ gulp.task(
     "copy-css",
     "css",
     "html",
-    "images",
-    "watch"
+    "images"
+    // "watch"
   ],
   () => {
     gutil.log("Gulp task completed.");

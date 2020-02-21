@@ -54,6 +54,8 @@ app.use(helmet.hidePoweredBy());
 app.use(cookieSession({
   keys: ["FC_Admin"],
   cookie: {
+    secure: true,
+    sameSite: true,
     maxAge: 1000 * 60 // * 60 // 유효기간 1시간
   }
 }));

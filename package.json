@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "nodemon ./bin/www",
+    "start": "nodemon ./bin/www",
     "build": "gulp",
     "deploy-setup": "pm2 deploy production setup",
     "deploy": "pm2 deploy production update",
