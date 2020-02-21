@@ -11,26 +11,26 @@ hbs.registerHelper("isEquals", function(a, b) {
 (function() {
   function checkCondition(v1, operator, v2) {
     switch (operator) {
-    case "==":
-      return v1 == v2;
-    case "===":
-      return v1 === v2;
-    case "!==":
-      return v1 !== v2;
-    case "<":
-      return v1 < v2;
-    case "<=":
-      return v1 <= v2;
-    case ">":
-      return v1 > v2;
-    case ">=":
-      return v1 >= v2;
-    case "&&":
-      return v1 && v2;
-    case "||":
-      return v1 || v2;
-    default:
-      return false;
+      case "==":
+        return v1 == v2;
+      case "===":
+        return v1 === v2;
+      case "!==":
+        return v1 !== v2;
+      case "<":
+        return v1 < v2;
+      case "<=":
+        return v1 <= v2;
+      case ">":
+        return v1 > v2;
+      case ">=":
+        return v1 >= v2;
+      case "&&":
+        return v1 && v2;
+      case "||":
+        return v1 || v2;
+      default:
+        return false;
     }
   }
 
@@ -45,9 +45,9 @@ hbs.registerHelper("isEmpty", function(a) {
   return a === "" || a === null;
 });
 
-//hbs.registerHelper('time', function (time) {
-//	return moment().utc(time).format("YYYY-MM-DD HH:mm:ss");
-//});
+// hbs.registerHelper('time', function (time) {
+// return moment().utc(time).format("YYYY-MM-DD HH:mm:ss");
+// });
 
 hbs.registerHelper("comma-number", function(num) {
   num === null ? (num = 0) : null;
@@ -59,8 +59,12 @@ hbs.registerHelper("currency", function(num) {
 });
 
 hbs.registerHelper("checkMinus", function(num) {
-  if (isNaN(num)) num = parseInt(num);
-  if (num.toString().indexOf("-") != -1) return true;
+  if (isNaN(num)) {
+    num = parseInt(num);
+  }
+  if (num.toString().indexOf("-") != -1) {
+    return true;
+  }
   return false;
 });
 
@@ -73,12 +77,14 @@ hbs.registerHelper("dateformat", function(date, format) {
 });
 
 hbs.registerHelper("comparison", function(value, max) {
-  return value < max ? true : false;
+  return value < max;
 });
 
 hbs.registerHelper("for", function(from, to, incr, block) {
   var accum = "";
-  for (var i = from; i < to; i += incr) accum += block.fn(i);
+  for (var i = from; i < to; i += incr) {
+    accum += block.fn(i);
+  }
   return accum;
 });
 
@@ -132,4 +138,9 @@ hbs.registerHelper("top", function(offset, context, options) {
     ret = ret + options.fn(context[i]);
   }
   return ret;
+});
+
+hbs.registerHelper("split", function(str) {
+  var arr = str.split(",");
+  return arr;
 });

@@ -1,0 +1,2 @@
+"use strict";window.requirejs(["common"],function(n){function i(){r.attr("src","/api/v1/aqua-direct?os="+n.getOSName()+"&url=onm_orange_admin.mp4")}function o(){r.attr("src","/api/v1/aqua-direct?os="+n.getOSName()+"&url=onm_orange_user.mp4")}var t=t||window.$,r=t("#frame-video"),a=t("#btn-admin"),c=t("#btn-user");t(function(){i()}),a.on("click",function(){i()}),c.on("click",function(){o()})});
+//# sourceMappingURL=../maps/help.js.map

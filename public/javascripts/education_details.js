@@ -2,12 +2,15 @@
  * Created by yijaejun on 30/11/2016.
  */
 "use strict";
-require(["common"], function(Util) {
-  var btnModifyEdu = $(".btn-modify-edu"); // 교육과정 수정버튼
-  var btnDeleteEducation = $("#btnDeleteEducation"); // 교육과정 삭제버튼
-  var btnAddEduCourse = $("#btn-add-course-edu"); // 강의추가 버튼
-  var selectCourseList = $("#select-course-list"); // 추가할 강의 리스트
-  var courseContainer = $("#draggablePanelList"); // 추가된 강의 목록
+requirejs([
+  "common"
+],
+function (Util) {
+  var btnModifyEdu = $(".btn-modify-edu");            // 교육과정 수정버튼
+  var btnDeleteEducation = $("#btnDeleteEducation");  // 교육과정 삭제버튼
+  var btnAddEduCourse = $("#btn-add-course-edu");     // 강의추가 버튼
+  var selectCourseList = $("#select-course-list");    // 추가할 강의 리스트
+  var courseContainer = $("#draggablePanelList");     // 추가된 강의 목록
   // 포인트 가중치 설정 관련 변수
   var pointTotal = 0;
   var frmPointWeight = $("#frm_point_weight");
@@ -16,17 +19,17 @@ require(["common"], function(Util) {
   var btnRegisterPointWeight = $(".btn-register-point-weight");
 
   // 초기 설정
-  $(function() {
+  $(function () {
     // jQuery UI sortable 초기화
     $("#draggablePanelList").sortable({
       placeholder: "sort-highlight",
       handle: ".handle",
       forcePlaceholderSize: true,
       zIndex: 999999,
-      start: function(e, ui) {
+      start: function (e, ui) {
         $(this).attr("data-previndex", ui.item.index());
       },
-      update: function(e, ui) {
+      update: function (e, ui) {
         var newIndex = ui.item.index();
         var oldIndex = $(this).attr("data-previndex");
         $(this).removeAttr("data-previndex");
@@ -34,36 +37,32 @@ require(["common"], function(Util) {
       }
     });
 
-    // DateTimePicker 설정
-    var start_dt = moment().format();
-    var end_dt = moment().add(6, "days");
+      // DateTimePicker 설정
+    // var start_dt = moment().format();
+    // var end_dt = moment().add(6, 'days');
 
-    // 교육 시작일자
-    $("#start_dt").datetimepicker({
-      defaultDate: start_dt,
-      format: "YYYY-MM-DD",
-      showTodayButton: true
-    });
+    //   // 교육 시작일자
+    // $('#start_dt').datetimepicker({
+    //   defaultDate: start_dt,
+    //   format: 'YYYY-MM-DD',
+    //   showTodayButton: true
+    // });
 
-    // 교육 종료일자
-    $("#end_dt").datetimepicker({
-      defaultDate: end_dt,
-      format: "YYYY-MM-DD",
-      useCurrent: false,
-      showTodayButton: true
-    });
+    //   // 교육 종료일자
+    // $('#end_dt').datetimepicker({
+    //   defaultDate: end_dt,
+    //   format: 'YYYY-MM-DD',
+    //   useCurrent: false,
+    //   showTodayButton: true
+    // });
 
-    // 날짜가 서로 겹치지 않도록 설정한다.
-    $("#start_dt").on("dp.change", function(e) {
-      $("#end_dt")
-        .data("DateTimePicker")
-        .minDate(e.date);
-    });
-    $("#end_dt").on("dp.change", function(e) {
-      $("#start_dt")
-        .data("DateTimePicker")
-        .maxDate(e.date);
-    });
+    //   // 날짜가 서로 겹치지 않도록 설정한다.
+    // $('#start_dt').on('dp.change', function (e) {
+    //   $('#end_dt').data('DateTimePicker').minDate(e.date);
+    // });
+    // $('#end_dt').on('dp.change', function (e) {
+    //   $('#start_dt').data('DateTimePicker').maxDate(e.date);
+    // });
 
     tinymce.init({
       selector: ".course-desc"
@@ -71,7 +70,7 @@ require(["common"], function(Util) {
   });
 
   // 교육과정 삭제하기
-  btnDeleteEducation.bind("click", function() {
+  btnDeleteEducation.bind("click", function () {
     if (!confirm("삭제 시 되돌릴 수 없습니다. 정말 삭제하시겠습니까?")) {
       return false;
     }
@@ -98,7 +97,7 @@ require(["common"], function(Util) {
   });
 
   // 교육과정 수정
-  btnModifyEdu.bind("click", function() {
+  btnModifyEdu.bind("click", function () {
     var eduName = $(".course-name");
     var eduDesc = tinymce.activeEditor.getContent();
     var courseGroupList = makeCourseGroupList();
@@ -131,19 +130,9 @@ require(["common"], function(Util) {
         id: $("#edu_id").val(),
         name: eduName.val().trim(),
         desc: eduDesc,
-        courseGroupList: courseGroupList.data,
-        start_dt:
-          $("#start_dt")
-            .find("input")
-            .val() +
-          " " +
-          "00:00:00",
-        end_dt:
-          $("#end_dt")
-            .find("input")
-            .val() +
-          " " +
-          "23:59:59"
+        course_group_list: courseGroupList.data,
+        start_dt: $("#start_dt").find("input").val() + " " + "00:00:00",
+        end_dt: $("#end_dt").find("input").val() + " " + "23:59:59"
       }
     }).then(function(res) {
       if (res.data.success == true) {
@@ -156,36 +145,31 @@ require(["common"], function(Util) {
   });
 
   // 강의그룹 데이터를 생성한다.
-  function makeCourseGroupList() {
+  function makeCourseGroupList () {
     var courseGroupList = [];
     var order = 0;
     var mode = "";
     var valid_course_count = 0;
 
-    $("#draggablePanelList")
-      .find("li.list-group-item")
-      .each(function(index) {
-        var course_group = {
-          id: $(this).data("course-group-id"),
-          course_id: $(this).data("course-id"),
-          course_group_id: $(this).data("course-group-key"),
-          order: order
-        };
+    $("#draggablePanelList").find("li.list-group-item").each(function (index) {
+      var course_group = {
+        id: $(this).data("course-group-id"),
+        course_id: $(this).data("course-id"),
+        course_group_id: $(this).data("course-group-key"),
+        order: order
+      };
 
-        if (course_group.id) {
-          if ($(this).is(":visible")) course_group.mode = "UPDATE";
-          else course_group.mode = "DELETE";
-        } else {
-          course_group.mode = "INSERT";
-        }
+      if (course_group.id) {
+        if ($(this).is(":visible")) { course_group.mode = "UPDATE"; } else { course_group.mode = "DELETE"; }
+      } else { course_group.mode = "INSERT"; }
 
-        courseGroupList.push(course_group);
+      courseGroupList.push(course_group);
 
-        if (course_group.mode !== "DELETE") {
-          valid_course_count += 1;
-          order += 1;
-        }
-      });
+      if (course_group.mode !== "DELETE") {
+        valid_course_count += 1;
+        order += 1;
+      }
+    });
 
     return { data: courseGroupList, valid_course_count: valid_course_count };
   }
@@ -219,27 +203,20 @@ require(["common"], function(Util) {
   });
 
   // 강의를 그룹에 추가한다.
-  function addCourseGroupItem() {
+  function addCourseGroupItem () {
     var course_id = selectCourseList.find("option:selected").val();
     var course_name = selectCourseList.find("option:selected").text();
     var course_group_key = $("#course_group_key").val();
     var element = "";
 
-    // 강의 중복추가 방지
-    var duplicated_item = $(
-      ".list-group-item[data-course-id=\"" + course_id + "\" ]"
-    );
+      // 강의 중복추가 방지
+    var duplicated_item = $(".list-group-item[data-course-id=\"" + course_id + "\" ]");
     if (duplicated_item.length) {
       duplicated_item.show();
       return false;
     }
 
-    element +=
-      "<li class=\"list-group-item\" data-course-id=\"" +
-      course_id +
-      "\" data-course-group-id=\"\" data-course-group-key=\"" +
-      course_group_key +
-      "\">";
+    element += "<li class=\"list-group-item\" data-course-id=\"" + course_id + "\" data-course-group-id=\"\" data-course-group-key=\"" + course_group_key + "\">";
     element += "    <div class=\"course\">";
     element += "        <span class=\"handle ui-sortable-handle\">";
     element += "            <i class=\"fa fa-ellipsis-v\"></i>";
@@ -294,13 +271,11 @@ require(["common"], function(Util) {
   }
 
   // 설정값을 저장하려고 할 때 전체 값을 가져와서 합산이 100이 떨어지지 않을 경우 에러 메시지를 띄운다.
-  btnRegisterPointWeight.bind("click", function(e) {
+  btnRegisterPointWeight.bind("click", function (e) {
     var pointTotal = calculateTotalWeight();
 
     if (pointTotal !== 100) {
-      alert(
-        "포인트의 합계가 100이 되어야 합니다. 설정 값을 다시 확인해 주세요"
-      );
+      alert("포인트의 합계가 100이 되어야 합니다. 설정 값을 다시 확인해 주세요");
       e.preventDefault();
     } else {
       frmPointWeight.submit();
@@ -339,7 +314,7 @@ require(["common"], function(Util) {
   // input값을 돌면서 합산을 내는 함수를 별도로 제작한다.
   function calculateTotalWeight() {
     var pointTotal = 0;
-    pointWeightForm.find("input").each(function(index, elem) {
+    pointWeightForm.find("input").each(function (index, elem) {
       if ($(elem).is(":visible")) {
         pointTotal += parseInt($(elem).val());
       }
@@ -351,7 +326,7 @@ require(["common"], function(Util) {
    * 엘리먼트에 설정된 값을 규칙에 맞게 수정을 한다.
    * @param elem
    */
-  function validateEveryInput(elem) {
+  function validateEveryInput (elem) {
     var _val = elem.val();
 
     if (_val == 0 && _val.length >= 1) {

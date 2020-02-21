@@ -6,16 +6,44 @@ const connection = mysql_dbc.init();
 const UserService = {};
 const QUERY = require("../database/query");
 const async = require("async");
-var bcrypt = require("bcrypt");
+const bcrypt = require("bcrypt");
 const pool = require("../commons/db_conn_pool");
 
-var __pointer = 0;
-var __userSize = 0;
-var __error = [];
-var __sizeOfUserId = 0;
+/**
+ * 관리자를 비활성화 한다.
+ * _id: users 테이블의 id
+ */
+UserService.deactivateAdminById = function(_id, _callback) {
+  pool.getConnection(function(err, connection) {
+    if (err) throw err;
+    connection.query(QUERY.ADMIN.DisableAdminById, [_id], function(err, data) {
+      connection.release();
+      if (err) throw err;
+      _callback(err, null);
+    });
+  });
+};
 
 /**
- * 지점을 비활성화 한다.
+ * 직원을 비활성화 한다.
+ * _id: users 테이블의 id
+ */
+UserService.deactivateEmployeeById = function(_id, _callback) {
+  pool.getConnection(function(err, connection) {
+    if (err) throw err;
+    connection.query(QUERY.EMPLOYEE.DisableEmployeeById, [_id], function(
+      err,
+      data
+    ) {
+      connection.release();
+      if (err) throw err;
+      _callback(err, null);
+    });
+  });
+};
+
+/**
+ * 점포을 비활성화 한다.
  * _id: branch 테이블의 id
  */
 UserService.deactivateBranchById = function(_id, _callback) {
@@ -85,14 +113,14 @@ UserService.extractUserIdFromList = function(list, cb) {
         cb(null, user_id);
       }
 
-      //for(var j= 0, len2=rows.length; j<len2 ;j++){
+      // for(var j= 0, len2=rows.length; j<len2 ;j++){
       //	user_id.push(rows[j].id);
-      //}
+      // }
       //
-      //console.info('return user_id array');
-      //console.info(user_id);
+      // console.info('return user_id array');
+      // console.info(user_id);
       //
-      //cb(null, user_id);
+      // cb(null, user_id);
     }
   });
 };
@@ -102,6 +130,8 @@ UserService.extractUserIdFromList = function(list, cb) {
  * @param user_id
  * @param cb
  */
+var __pointer = 0;
+var __sizeOfUserId = 0;
 UserService.insertUserDataInGroupUser = function(user_id, group_id, cb) {
   if (__pointer === 0) {
     __sizeOfUserId = user_id.length;
@@ -158,11 +188,10 @@ UserService.extractUserIdByGroupId = function(group_id, cb) {
  * @param cb
  * @constructor
  */
-UserService.InsertUsersWithTrainingEduId = function(
-  user_id,
-  training_edu_id,
-  cb
-) {
+var __userSize = 0;
+var __pointer = 0;
+var __error = [];
+UserService.InsertUsersWithTrainingEduId = (user_id, training_edu_id, cb) => {
   if (__pointer === 0) {
     __userSize = user_id.length;
   }
@@ -193,23 +222,23 @@ UserService.InsertUsersWithTrainingEduId = function(
  * 엑셀업로드로 직원을 생성한다.
  */
 UserService.createUserByExcel = function(_connection, _data, _callback) {
-  var _count = 0,
-    _excel_data = _data.excel_data,
-    _user = _data.user;
+  var _count = 0;
+  var _excel_data = _data.excel_data;
+  var _user = _data.user;
 
   // console.log(_data.excel_data);
   // _callback(null, null);
   // return;
 
-  _connection.beginTransaction(function(err) {
+  _connection.beginTransaction(err => {
     // 트렌젝션 오류 발생
     if (err) _callback(err, null);
 
     async.whilst(
-      function() {
+      () => {
         return _count < _excel_data.length;
       },
-      function(callback) {
+      callback => {
         // console.log(_excel_data[_count].name + " 입력 중..");
 
         // 오류가 있는 엑셀 데이터는 레코드 자체를 미입력
@@ -217,16 +246,17 @@ UserService.createUserByExcel = function(_connection, _data, _callback) {
           _count++;
           callback(null, null);
         } else {
+          // console.log(_excel_data[_count]);
           UserService.createBranchOrSelect(
             _connection,
             _excel_data[_count].branch,
             _user.fc_id,
-            function(err, branch_id) {
+            (err, branch_id) => {
               UserService.createDutyOrSelect(
                 _connection,
                 _excel_data[_count].duty,
                 _user.fc_id,
-                function(err, duty_id) {
+                (err, duty_id) => {
                   // console.log(branch_id);
                   // console.log(duty_id);
                   var query = _connection.query(
@@ -241,7 +271,7 @@ UserService.createUserByExcel = function(_connection, _data, _callback) {
                       branch_id
                     ],
                     function(err, data) {
-                      console.log(query.sql);
+                      // console.log(query.sql);
                       if (err) console.log(err);
                       // 다음 엑셀 데이터를 읽기 위해 카운터를 증가시킨다.
                       _count++;
@@ -295,7 +325,7 @@ UserService.createBranchOrSelect = function(
     if (data.insertId) {
       _callback(err, data.insertId);
     } else {
-      // 이미 존재하는 지점일 경우 기존 지점 ID 를 조회한다.
+      // 이미 존재하는 점포일 경우 기존 점포 ID 를 조회한다.
       _connection.query(
         QUERY.EMPLOYEE.GetBranchByName,
         [_fc_id, _branch],

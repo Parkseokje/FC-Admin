@@ -1,291 +1,386 @@
-var express = require("express");
-var router = express.Router();
-var mysql_dbc = require("../commons/db_conn")();
-var connection = mysql_dbc.init();
-var QUERY = require("../database/query");
-var isAuthenticated = function(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  res.redirect("/login");
-};
-require("../commons/helpers");
+const express = require("express");
+const router = express.Router();
+const QUERY = require("../database/query");
 const async = require("async");
+const pool = require("../commons/db_conn_pool");
+const util = require("../util/util");
 
-router.get("/", isAuthenticated, function(req, res) {
-  var querystring = null;
-
-  // 슈퍼바이저일 경우 자신의 점포만 볼 수 있다.
-  if (req.user.role === "supervisor")
-    querystring = QUERY.HISTORY.GetAssignEduHistory2;
-  else querystring = QUERY.HISTORY.GetAssignEduHistory;
-
-  var query = connection.query(
-    querystring,
-    [req.user.fc_id, req.user.admin_id],
-    function(err, rows) {
-      if (err) {
-        console.error(err);
-        throw new Error(err);
-      } else {
-        res.render("achievement", {
-          current_path: "Achievement",
-          title: PROJ_TITLE + "Achievement",
-          loggedIn: req.user,
-          list: rows
-        });
+router.get("/", util.isAuthenticated, util.getLogoInfo, (req, res, next) => {
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    connection.query(
+      QUERY.HISTORY.GetAssignEduHistory(req.user),
+      [],
+      (err, rows) => {
+        connection.release();
+        // console.log(q.sql);
+        if (err) {
+          console.error(err);
+          throw new Error(err);
+        } else {
+          res.render("achievement", {
+            menu_group: "achievement",
+            current_path: "Achievement",
+            title: "교육과정별 진척도",
+            loggedIn: req.user,
+            list: rows
+          });
+        }
       }
-    }
-  );
+    );
+  });
 });
 
 /**
  * 교육진척도 상세화면
  */
-router.get("/details", isAuthenticated, function(req, res) {
-  var _training_edu_id = req.query.id,
-    _edu_id = req.query.edu_id,
-    _point_weight = null,
-    _query = null;
+router.get(
+  "/details",
+  util.isAuthenticated,
+  util.getLogoInfo,
+  (req, res, next) => {
+    // var trainingUserId = req.query.id;
+    const eduId = req.query.edu_id;
+    let pointWeight = null;
 
-  if (req.user.role === "supervisor") {
-    async.series(
-      [
-        function(callback) {
-          _query = connection.query(
-            QUERY.ACHIEVEMENT.GetBranchProgress,
-            [req.user.fc_id, req.user.admin_id, _edu_id, _edu_id],
-            function(err, data) {
-              // console.log(_query.sql);
-              callback(err, data); // results[0]
-            }
-          );
-        },
-        function(callback) {
-          _query = connection.query(
-            QUERY.ACHIEVEMENT.GetUserProgress,
-            [req.user.fc_id, req.user.admin_id, _edu_id, _edu_id],
-            function(err, data) {
-              // console.log(_query.sql);
-              callback(err, data); // results[1]
-            }
-          );
-        },
-        function(callback) {
-          _query = connection.query(
-            QUERY.ACHIEVEMENT.GetEduInfoById,
-            [_edu_id],
-            function(err, data) {
-              // console.log(_query.sql);
-              callback(err, data); // results[2]
-            }
-          );
-        }
-      ],
-      function(err, results) {
-        if (err) {
-          console.error(err);
-        } else {
-          // console.info(results);
-
-          res.render("achievement_details", {
-            current_path: "AchievementDetails",
-            title: PROJ_TITLE + "Achievement Details",
-            loggedIn: req.user,
-            branch_progress: results[0],
-            user_progress: results[1],
-            edu_name: results[2][0].name
-          });
-        }
-      }
-    );
-  } else {
-    async.series(
-      [
-        // 지점별 진척도
-        function(callback) {
-          _query = connection.query(
-            QUERY.ACHIEVEMENT.GetBranchProgressAllByEdu,
-            [req.user.fc_id, _edu_id, _edu_id],
-            function(err, data) {
-              // console.log(_query.sql);
-              callback(err, data); // results[0]
-            }
-          );
-        },
-        // 포인트 설정값 조회
-        function(callback) {
-          _query = connection.query(
-            QUERY.EDU.GetRecentPointWeight,
-            [req.user.fc_id, _edu_id],
-            function(err, data) {
-              _point_weight = data[0];
-              callback(err, data); // results[1]
-            }
-          );
-        },
-        // 교육생별 진척도
-        function(callback) {
-          _query = connection.query(
-            QUERY.ACHIEVEMENT.GetUserProgressAllByEdu,
-            [
-              _point_weight.point_complete,
-              _point_weight.point_quiz,
-              _point_weight.point_final,
-              _point_weight.point_reeltime,
-              _point_weight.point_speed,
-              _point_weight.point_repetition,
-              req.user.fc_id,
-              _edu_id,
-              _edu_id
-            ],
-            function(err, data) {
-              callback(err, data); // results[2]
-            }
-          );
-        },
-        // 교육정보 조회
-        function(callback) {
-          _query = connection.query(
-            QUERY.ACHIEVEMENT.GetEduInfoById,
-            [_edu_id],
-            function(err, data) {
-              callback(err, data); // results[3]
-            }
-          );
-        }
-      ],
-      function(err, results) {
-        if (err) {
-          console.error(err);
-        } else {
-          // console.info(results);
-
-          res.render("achievement_details", {
-            current_path: "AchievementDetails",
-            title: PROJ_TITLE + "Achievement Details",
-            loggedIn: req.user,
-            branch_progress: results[0],
-            user_progress: results[2],
-            edu_name: results[3][0].name
-          });
-        }
-      }
-    );
-  }
-});
-
-router.get("/details_old", isAuthenticated, function(req, res) {
-  var _training_edu_id = req.query.id;
-  var _edu_id = req.query.edu_id;
-
-  // TODO List
-  // 1. 전체 강의당 세션 수를 가져온다
-  // 2. 해당 교육에 배정된 유저들의 데이터를 가져온다.
-  // 3. 점포별 이수율을 가져온다.
-  // 4. 진행중인 교육의 강의 번호를 가져와야 한다
-
-  async.waterfall(
-    [
-      // 교육 내 강의 데이터와 강의 내 세션 개수를 가져온다.
-      function(callback) {
-        connection.query(
-          QUERY.ACHIEVEMENT.GetTotalSessByEdu,
-          [_edu_id],
-          function(err, rows) {
-            if (err) {
-              console.error(err);
-              callback(err, null);
-            } else {
-              callback(null, rows);
-            }
+    pool.getConnection((err, connection) => {
+      if (err) throw err;
+      async.series(
+        [
+          // 강의별 진척도
+          callback => {
+            connection.query(
+              QUERY.DASHBOARD.GetCourseProgressByEduId,
+              [req.user.fc_id, req.user.fc_id, eduId],
+              (err, result) => {
+                callback(err, result);
+              }
+            );
+          },
+          // 점포별 진척도
+          callback => {
+            connection.query(
+              QUERY.ACHIEVEMENT.GetBranchProgressAllByEdu(eduId, req.user),
+              [],
+              (err, data) => {
+                callback(err, data); // results[1]
+              }
+            );
+          },
+          // 포인트 설정값 조회
+          callback => {
+            connection.query(
+              QUERY.EDU.GetRecentPointWeight,
+              [req.user.fc_id, eduId],
+              (err, data) => {
+                pointWeight = data[0];
+                // console.log(pointWeight);
+                if (pointWeight == null) {
+                  pointWeight = {
+                    point_complete: 0,
+                    point_quiz: 0,
+                    point_final: 0,
+                    point_reeltime: 0,
+                    point_speed: 0,
+                    point_repetition: 0
+                  };
+                }
+                callback(err, data); // results[2]
+              }
+            );
+          },
+          // 교육생별 진척도
+          callback => {
+            connection.query(
+              QUERY.ACHIEVEMENT.GetUserProgressAllByEdu(
+                eduId,
+                req.user,
+                pointWeight
+              ),
+              [
+                pointWeight.point_complete,
+                pointWeight.point_quiz,
+                pointWeight.point_final,
+                pointWeight.point_reeltime,
+                pointWeight.point_speed,
+                pointWeight.point_repetition,
+                req.user.fc_id,
+                eduId,
+                eduId,
+                req.user.admin_id
+              ],
+              (err, data) => {
+                callback(err, data); // results[3]
+              }
+            );
+          },
+          // 교육정보 조회
+          callback => {
+            connection.query(
+              QUERY.ACHIEVEMENT.GetEduInfoById,
+              [eduId],
+              (err, data) => {
+                callback(err, data); // results[4]
+              }
+            );
           }
-        );
-      },
-
-      // 강의 아이디 배열을 통하여 유저 리스트를 이수율에 따라서 순서대로 가져오기
-      function(course_info, callback) {
-        // todo 강의 아이디만 배열에 담아서 사용한다.
-        var course_id = [];
-
-        for (var i = 0, len = course_info.length; i < len; i++) {
-          course_id.push(course_info[i].course_id);
-        }
-
-        connection.query(
-          QUERY.ACHIEVEMENT.GetListWithCompletedSessByTrainingEduId,
-          [course_id, _training_edu_id],
-          function(err, rows) {
-            if (err) {
-              console.error(err);
-              callback(err, null);
-            } else {
-              callback(null, course_info, rows);
-            }
-          }
-        );
-      },
-
-      function(course_info, list_info, callback) {
-        var course_id = [];
-
-        for (var i = 0, len = course_info.length; i < len; i++) {
-          course_id.push(course_info[i].course_id);
-        }
-
-        connection.query(
-          QUERY.ACHIEVEMENT.GetCompletionByBranch,
-          [course_id, _training_edu_id],
-          function(err, rows) {
-            if (err) {
-              console.error(err);
-              callback(err, null);
-            } else {
-              callback(null, course_info, list_info, rows);
-            }
-          }
-        );
-      },
-
-      function(course_info, list_info, branch_info, callback) {
-        connection.query(QUERY.ACHIEVEMENT.GetEduInfoById, [_edu_id], function(
-          err,
-          rows
-        ) {
+        ],
+        (err, results) => {
+          connection.release();
           if (err) {
             console.error(err);
-            callback(err, null);
           } else {
-            callback(null, course_info, list_info, branch_info, rows);
+            // console.info(results);
+            res.render("achievement_details", {
+              menu_group: "achievement",
+              current_path: "AchievementDetails",
+              title: "교육과정별 진척도 상세",
+              loggedIn: req.user,
+              course_progress: results[0],
+              branch_progress: results[1],
+              user_progress: results[3],
+              edu_name: results[4][0].name,
+              edu_id: eduId
+            });
           }
-        });
-      }
-    ],
-
-    function(err, course_info, list_info, branch_info, edu_info) {
-      if (err) {
-        console.error(err);
-        throw new Error(err);
-      } else {
-        console.info(branch_info);
-
-        // 교육 내부에 총 세션 개수를 구한다.
-        var _total = 0;
-        for (var j = 0, len2 = course_info.length; j < len2; j++) {
-          // console.info(course_info[j].sess_total);
-          _total += parseInt(course_info[j].sess_total);
         }
+      );
+    });
+  }
+);
 
-        res.render("achievement_details", {
-          current_path: "AchievementDetails",
-          title: PROJ_TITLE + "Achievement Details",
-          loggedIn: req.user,
-          user_list: list_info,
-          total_sess: _total,
-          branch_info: branch_info,
-          edu_info: edu_info
-        });
+/**
+ * 교육생별 진척도
+ */
+router.get(
+  "/user",
+  util.isAuthenticated,
+  util.getLogoInfo,
+  (req, res, next) => {
+    pool.getConnection((err, connection) => {
+      if (err) throw err;
+      // 슈퍼바이저일 경우 자신의 점포만 볼 수 있다.
+      connection.query(
+        QUERY.ACHIEVEMENT.GetUserProgressAll(req.user),
+        [],
+        (err, rows) => {
+          connection.release();
+          if (err) {
+            console.error(err);
+            throw new Error(err);
+          } else {
+            res.render("achievement_user", {
+              menu_group: "achievement",
+              current_path: "AchievementUser",
+              title: "교육생별 진척도",
+              loggedIn: req.user,
+              list: rows
+            });
+          }
+        }
+      );
+    });
+  }
+);
+
+/**
+ * 교육생의 교육과정별 진척도
+ */
+router.get(
+  "/user/details",
+  util.isAuthenticated,
+  util.getLogoInfo,
+  (req, res, next) => {
+    const { user_id: userId, showall } = req.query;
+    pool.getConnection((err, connection) => {
+      if (err) throw err;
+      // todo 슈퍼바이저일 경우 자신의 점포만 볼 수 있다.
+      connection.query(
+        QUERY.ACHIEVEMENT.GetUserEduProgressAll(showall),
+        [req.user.fc_id, userId],
+        (err, rows) => {
+          connection.release();
+          if (err) {
+            console.error(err);
+            throw new Error(err);
+          } else {
+            let sum = 0;
+            for (var value of rows) {
+              sum += value.completed_rate;
+            }
+            let avg = 0;
+            if (sum !== 0) {
+              avg = (sum / rows.length).toFixed(2);
+            }
+
+            res.render("achievement_user_details", {
+              menu_group: "achievement",
+              current_path: "AchievementUserDetails",
+              title: "교육생별 상세 진척도",
+              loggedIn: req.user,
+              userid: userId,
+              list: rows,
+              showall: showall,
+              avg_completed_rate: avg
+            });
+          }
+        }
+      );
+    });
+  }
+);
+
+/**
+ * 교육생의 강의별 진척도
+ */
+router.get(
+  "/user/education",
+  util.isAuthenticated,
+  util.getLogoInfo,
+  (req, res, next) => {
+    const { training_user_id: trainingUserId } = req.query;
+
+    pool.getConnection((err, connection) => {
+      if (err) throw err;
+      // 슈퍼바이저일 경우 자신의 점포만 볼 수 있다.
+      connection.query(
+        QUERY.ACHIEVEMENT.GetUserEduCourseProgress(),
+        [req.user.fc_id, trainingUserId],
+        (err, rows) => {
+          connection.release();
+          if (err) {
+            console.error(err);
+            throw new Error(err);
+          } else {
+            res.send({
+              list: rows,
+              progress_bar_theme: res.locals.themeOfProgressBar
+            });
+          }
+        }
+      );
+    });
+  }
+);
+
+/**
+ * 체크리스트 데이터를 반환한다
+ */
+// TODO supervisor 권한처리
+router.get("/checklist", util.isAuthenticated, (req, res, next) => {
+  const { edu_id: eduId } = req.query;
+  const showAll = req.user.role !== "supervisor";
+
+  pool.getConnection((err, connection) => {
+    if (err) throw err;
+    async.series(
+      [
+        callback => {
+          connection.query(
+            QUERY.ACHIEVEMENT.GetChecklistQuestionByEduId,
+            [eduId],
+            (err, rows) => {
+              // console.log(rows);
+              callback(err, rows);
+            }
+          );
+        },
+        callback => {
+          connection.query(
+            QUERY.ACHIEVEMENT.GetChecklistUserAnswers(showAll, {
+              eduId: eduId,
+              adminId: req.user.admin_id
+            }),
+            [],
+            (err, rows) => {
+              // console.log(rows);
+              callback(err, rows);
+            }
+          );
+        }
+      ],
+      (err, results) => {
+        connection.release();
+        if (err) {
+          console.error(err);
+          throw err;
+        } else if (results[1].length > 0) {
+          let checklists = [];
+          let colums = [];
+
+          colums.push({ title: "점포" });
+          colums.push({ title: "이름" });
+          colums.push({ title: "직책" });
+
+          let courseListId;
+          let courseListTitle;
+
+          for (let i = 0; i < results[0].length; i++) {
+            if (
+              courseListId !== undefined &&
+              courseListId !== results[0][i].id
+            ) {
+              let userdata = results[1].filter(data => {
+                return data.course_list_id === courseListId;
+              });
+
+              let rows = [];
+              for (let j = 0; j < userdata.length; j++) {
+                let rowItems = [
+                  userdata[j].branch_name,
+                  userdata[j].user_name,
+                  userdata[j].duty_name
+                ];
+                rows.push(rowItems.concat(userdata[j].answered.split(",")));
+              }
+              checklists.push({
+                checklist_title: courseListTitle,
+                columns: colums,
+                rows: rows
+              }); // todo : 중복코드이므로 리펙토링시 방법 모색해볼 것.
+              colums = [];
+              colums.push({ title: "점포" });
+              colums.push({ title: "이름" });
+              colums.push({ title: "직책" });
+            }
+            colums.push({ title: results[0][i].item_name });
+
+            if (i === results[0].length - 1) {
+              let userdata = results[1].filter(data => {
+                return data.course_list_id === results[0][i].id;
+              });
+
+              let rows = [];
+              for (let j = 0; j < userdata.length; j++) {
+                let rowItems = [
+                  userdata[j].branch_name,
+                  userdata[j].user_name,
+                  userdata[j].duty_name
+                ];
+                rows.push(rowItems.concat(userdata[j].answered.split(",")));
+              }
+              checklists.push({
+                checklist_title: results[0][i].title,
+                columns: colums,
+                rows: rows
+              });
+            } else {
+              courseListId = results[0][i].id;
+              courseListTitle = results[0][i].title;
+            }
+          }
+          // console.log(JSON.stringify(checklists));
+          res.send({
+            checklists: checklists
+          });
+        } else {
+          res.send({
+            checklists: null
+          });
+        }
       }
-    }
-  );
+    );
+  });
 });
 
 module.exports = router;

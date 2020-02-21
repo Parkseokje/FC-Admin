@@ -1,18 +1,29 @@
 const express = require("express");
 const router = express.Router();
-const mysql_dbc = require("../commons/db_conn")();
-const connection = mysql_dbc.init();
+const mysqlDbc = require("../commons/db_conn")();
+const connection = mysqlDbc.init();
 const QUERY = require("../database/query");
+const pool = require("../commons/db_conn_pool");
+const async = require("async");
 const isAuthenticated = function(req, res, next) {
-  if (req.isAuthenticated()) return next();
+  if (req.isAuthenticated()) {
+    return next();
+  }
   res.redirect("/login");
 };
 const util = require("../util/util");
 var CourseService = require("../service/CourseService");
-const queryString = require("query-string");
-var MessageService = require("../service/MessageService");
+const MessageService = require("../service/MessageService");
+const AquaPlayerService = require("../service/AquaPlayerService");
+const formidable = require("formidable");
+const path = require("path");
+const unirest = require("unirest");
+const request = require("request");
 
-router.get("/course/group/id/create", isAuthenticated, function(req, res) {
+const aws = require("aws-sdk");
+aws.config.loadFromPath("./secret/aws-config.json");
+
+router.get("/course/group/id/create", isAuthenticated, (req, res) => {
   res.json({
     id: util.publishHashByMD5(new Date())
   });
@@ -21,7 +32,7 @@ router.get("/course/group/id/create", isAuthenticated, function(req, res) {
 /**
  * #이슈 IE 에서 route 경로에 "create" 포함 시 axios 가 정상 동작하지 않는다.
  */
-router.get("/randomkey", isAuthenticated, function(req, res) {
+router.get("/randomkey", isAuthenticated, (req, res) => {
   res.json({
     id: util.publishHashByMD5(new Date())
   });
@@ -32,13 +43,13 @@ router.get("/randomkey", isAuthenticated, function(req, res) {
  * url : /api/v1/quiz
  * @params : quiz_group_id
  */
-router.get("/quizlist", isAuthenticated, function(req, res) {
+router.get("/quizlist", isAuthenticated, (req, res) => {
   var _inputs = req.query;
 
   connection.query(
     QUERY.COURSE.GetQuizDataByGroupId,
     [_inputs.quiz_group_id],
-    function(err, data) {
+    (err, data) => {
       if (err) {
         // 쿼리 실패
         return res.json({
@@ -47,9 +58,7 @@ router.get("/quizlist", isAuthenticated, function(req, res) {
         });
       } else {
         // console.log(data);
-
-        var quiz_list = CourseService.makeQuizList(data);
-
+        let quiz_list = CourseService.makeQuizList(data);
         // 쿼리 성공
         return res.json({
           success: true,
@@ -60,19 +69,186 @@ router.get("/quizlist", isAuthenticated, function(req, res) {
   );
 });
 
-// url : /api/v1/sms/callback
-router.get("/sms/callback", function(req, res) {
-  console.log("------------------");
-  console.log(req);
-  console.log("------------------");
+/**
+  SMS 를 전송한다.
+ */
+router.post("/sms/send", util.isAuthenticated, (req, res, next) => {
+  const { phones, msg } = req.body;
+
+  const phonesArray = phones.split(",");
+  let logs = [];
+  for (let phone of phonesArray) {
+    logs.push([req.user.admin_id, req.user.fc_id, msg, phone]);
+  }
+
+  // console.log(logs);
+  // return res.status(200).send('success!');
+
+  if (phones === undefined || msg === undefined) {
+    return res.status(500).send("잘못된 파라미터가 입력되었습니다.");
+  }
+  MessageService.sendMessage(req.user.fc_name, phones, msg, response => {
+    console.log(response.body);
+
+    pool.getConnection((err, connection) => {
+      if (err) throw err;
+      async.series(
+        [
+          callback => {
+            connection.query(
+              QUERY.COMMON.InsertMessageLog,
+              [logs],
+              (err, rows) => {
+                callback(err, rows);
+              }
+            );
+          }
+        ],
+        (err, results) => {
+          connection.release();
+          if (err) {
+            console.error(err);
+          } else {
+            return res.json({
+              success: true
+            });
+          }
+        }
+      );
+    });
+  });
 });
 
-router.get("/test", function(req, res) {
-  MessageService.send("교육과정이 배정되었습니다.", function(err, data) {
+/**
+  SMS 를 전송한다.
+ */
+router.post("/sendnumber", util.isAuthenticated, (req, res, next) => {
+  const { phone } = req.body;
+
+  if (phone === undefined) {
+    return res.status(500).send("잘못된 파라미터가 입력되었습니다.");
+  }
+  MessageService.registSendNumber(phone, response => {
+    return res.json({
+      success: true,
+      msg: response.body
+    });
+  });
+});
+
+router.get("/test", (req, res) => {
+  MessageService.send("교육과정이 배정되었습니다.", (err, data) => {
     return res.json({
       success: true
     });
   });
+});
+
+router.get("/player/encparam", AquaPlayerService.getEncodedParam);
+router.get(
+  "/aqua",
+  util.isAuthenticated,
+  util.getLogoInfo,
+  AquaPlayerService.show
+);
+router.get(
+  "/aqua-direct",
+  util.isAuthenticated,
+  util.getLogoInfo,
+  AquaPlayerService.showDirect
+);
+// router.get('/demo/aquaplayer', util.isAuthenticated, util.getLogoInfo, AquaPlayerService.demo);
+
+router.get("/fineuploader/token", (req, res, next) => {
+  const apiKey = "6ecfb7edbba488edaef8beb983c4dd9b";
+  // const apiKey = 'dfdd93a2a66608bed75697abffb5aaeb';
+  unirest
+    .get(`https://api.wecandeo.com/web/v4/uploadToken.json?key=${apiKey}`)
+    .end(function(response) {
+      console.log(response.body);
+      return res.send({
+        uploadInfo: response.body.uploadInfo,
+        deploy_package_id: 1006393,
+        folder_id: 2004903
+      });
+    });
+});
+
+router.post("/fineuploader", (req, res, next) => {
+  let filePath = null;
+  let incomingForm = new formidable.IncomingForm({
+    encoding: "utf-8",
+    keepExtensions: true,
+    multiples: false,
+    uploadDir: path.join(__dirname, "/../public/uploads")
+  });
+
+  incomingForm.parse(req, (err, fields, files) => {
+    if (err) throw err;
+
+    console.log(fields);
+    filePath = files.videofile.path;
+    // console.log(filePath);
+
+    return res.send({
+      success: true
+    });
+  });
+});
+
+router.get("/youtube", (req, res, next) => {
+  console.log(req.query.id);
+  return res.render("winpops/win_youtube_player", {
+    layout: "layout_youtube_player.hbs",
+    title: "유투브",
+    video_id: req.query.id
+  });
+});
+
+router.get("/download", (req, res, next) => {
+  const { url } = req.query;
+
+  if (!url) {
+    return res.sendStatus(500);
+  } else {
+    const downloadUrl = (url, output) => {
+      // const urlEncoded = encodeURIComponent(url);
+      // console.log(url, urlEncoded);
+
+      output.attachment(url.substring(url.lastIndexOf("/") + 1));
+
+      let stream = request.get(url);
+
+      stream.pipe(output);
+
+      stream
+        .on("error", err => {
+          console.log("Stream error:", err);
+          return next({
+            status: 500,
+            message: err
+          });
+        })
+        .on("end", () => {
+          console.log("Stream finished");
+        });
+    };
+
+    downloadUrl(url, res);
+  }
+});
+
+router.get("/s3-download", (req, res, next) => {
+  const { key } = req.query;
+  const params = {
+    Bucket: "orange-learning",
+    Key: key
+  };
+  const s3 = new aws.S3();
+
+  res.attachment(key);
+  var fileStream = s3.getObject(params).createReadStream();
+  fileStream.pipe(res);
 });
 
 module.exports = router;

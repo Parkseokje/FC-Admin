@@ -1,5 +1,5 @@
 <!-- Create Employee -->
-<div class="modal" id="uploadFile" role="dialog">
+<div class="modal fade" id="uploadFile" role="dialog">
     <form class="modal-dialog" method="post" action="/upload/excel/create/employee" id="frm_upload_file" enctype="multipart/form-data">
         <div class="modal-content">
             <div class="modal-header">
@@ -14,14 +14,15 @@
                     <a href="/uploads/excel/regist_employee.xlsx" class="btn btn-default">
                         <i class="fa fa-download"></i> &nbsp;
                         양식 다운로드
-                    </a>                                                    
-                </div>                
+                    </a>
+                </div>
                 <div class="form-group">
                     <label for="exampleInputFile">직원 정보가 있는 엑셀 파일을 업로드해주세요. <br />
                         <small class="text-red">
-                            1. 엑셀파일만 가능합니다.<br> 
-                            2. 반드시 저희가 제공해드리는 양식으로 작성하신 후, 업로드 해주시기 바랍니다.<br>                            
-                            3. 올바른 형식이 아니거나 중복된 휴대폰 및 이메일일 경우 입력되지 않습니다.
+                            1. 엑셀파일만 가능합니다.<br>
+                            2. 반드시 저희가 제공해드리는 양식으로 작성하신 후, 업로드 해주시기 바랍니다.<br>
+                            3. 올바른 형식이 아니거나 중복된 휴대폰 및 이메일일 경우 입력되지 않습니다.<br>
+                            4. 휴대폰번호 맨 앞자리 0이 입력되어있지 않을 경우 자동으로 삽입됩니다.
                         </small>
                     </label><br /><br />
                     <input type="file" name="file" id="exampleInputFile" required />
@@ -30,7 +31,7 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-default pull-left" data-dismiss="modal">닫기</button>
-                <button type="submit" class="btn btn-primary btn-set-agent-password-submit">등록</button>
+                <button id="js--btn-upload-employee-excel" type="submit" class="btn btn-primary">등록</button>
             </div>
         </div>
         <!-- /.modal-content -->
