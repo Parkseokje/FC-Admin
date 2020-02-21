@@ -26,7 +26,7 @@ module.exports = {
       repo: "git@github.com:Parkseokje/FC-Admin.git",
       path: "/home/ec2-user/FC-backoffice",
       "pre-deploy": "git reset --hard",
-      "post-deploy": "yarn install && pm2 startOrRestart ecosystem.config.js --env production"
+      "post-deploy": "pm2 startOrRestart ecosystem.config.js --env production"
     }
   }
 };
