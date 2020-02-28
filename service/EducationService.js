@@ -17,22 +17,14 @@ EducationService.getInfoWithPointWeight = (req, res, next) => {
     async.series(
       [
         callback => {
-          connection.query(
-            QUERY.EDU.GetEduInfoByIdWithPointWeight(req.params.id),
-            [],
-            (err, data) => {
-              callback(err, data);
-            }
-          );
+          connection.query(QUERY.EDU.GetEduInfoByIdWithPointWeight(req.params.id), [], (err, data) => {
+            callback(err, data);
+          });
         },
         callback => {
-          connection.query(
-            QUERY.TAG.SelectEduTags,
-            [req.params.id],
-            (err, data) => {
-              callback(err, data);
-            }
-          );
+          connection.query(QUERY.TAG.SelectEduTags, [req.params.id], (err, data) => {
+            callback(err, data);
+          });
         }
       ],
       (err, results) => {
@@ -87,36 +79,28 @@ EducationService.addCourseList = function(group_id, course_list, cb) {
     _count_size = course_list.length;
   }
 
-  connection.query(
-    QUERY.EDU.InsertCourseGroup,
-    [group_id, course_list[_count_info], 0],
-    function(err, result) {
-      if (err) {
-        console.error("EducationService:addCourseList " + err);
-        _error.push(err);
-        callback(err, null);
-      }
-
-      if (_count_info < _count_size - 1) {
-        _count_info++;
-        EducationService.addCourseList(group_id, course_list, cb);
-      } else {
-        // result를 모아서 던질 수 있어야 하나?
-        // todo 마지막 result를 던지지 말고 모든 result를 담아서 객체를 던지든가 아니면 true값만 던진다.
-        cb(null, result);
-      }
+  connection.query(QUERY.EDU.InsertCourseGroup, [group_id, course_list[_count_info], 0], function(err, result) {
+    if (err) {
+      console.error("EducationService:addCourseList " + err);
+      _error.push(err);
+      callback(err, null);
     }
-  );
+
+    if (_count_info < _count_size - 1) {
+      _count_info++;
+      EducationService.addCourseList(group_id, course_list, cb);
+    } else {
+      // result를 모아서 던질 수 있어야 하나?
+      // todo 마지막 result를 던지지 말고 모든 result를 담아서 객체를 던지든가 아니면 true값만 던진다.
+      cb(null, result);
+    }
+  });
 };
 
 /**
  * 강의그룹을 입력/수정한다.
  */
-EducationService.InsertOrUpdateCourseGroup = function(
-  connection,
-  data,
-  callback
-) {
+EducationService.InsertOrUpdateCourseGroup = function(connection, data, callback) {
   EducationService.connection = connection;
   async.each(data, executeCourseGroup, function(err, data) {
     callback(err, data);
@@ -133,23 +117,15 @@ function executeCourseGroup(data, callback) {
   var _query = null;
 
   if (data.mode === "DELETE") {
-    _query = EducationService.connection.query(
-      QUERY.EDU.DeleteCourseGroup,
-      [data.id],
-      function(err, data) {
-        // console.log(_query.sql);
-        callback(err, data);
-      }
-    );
+    _query = EducationService.connection.query(QUERY.EDU.DeleteCourseGroup, [data.id], function(err, data) {
+      // console.log(_query.sql);
+      callback(err, data);
+    });
   } else if (data.mode === "UPDATE") {
-    _query = EducationService.connection.query(
-      QUERY.EDU.UpdateCourseGroup,
-      [data.order, data.id],
-      function(err, data) {
-        // console.log(_query.sql);
-        callback(err, data);
-      }
-    );
+    _query = EducationService.connection.query(QUERY.EDU.UpdateCourseGroup, [data.order, data.id], function(err, data) {
+      // console.log(_query.sql);
+      callback(err, data);
+    });
   } else if (data.mode === "INSERT") {
     _query = EducationService.connection.query(
       QUERY.EDU.InsertCourseGroup,
@@ -183,19 +159,11 @@ EducationService.create = (req, res, next) => {
         [
           // 교육과정을 수정/입력한다.
           callback => {
-            if (req.body.edu_id) {
-              console.log("//// 교육과정 수정 ////");
-              // console.log(req.body);
+            if (req.body.edu_id && !isExistedEdu) {
               eduId = req.body.edu_id;
               connection.query(
                 QUERY.EDU.UpdateEdu,
-                [
-                  req.body.name,
-                  req.body.desc,
-                  req.body.can_replay,
-                  req.body.can_advance,
-                  eduId
-                ],
+                [req.body.name, req.body.desc, req.body.can_replay, req.body.can_advance, eduId],
                 (err, result) => {
                   callback(err, result);
                 }
@@ -224,15 +192,9 @@ EducationService.create = (req, res, next) => {
           callback => {
             if (req.body.edu_tags.length > 0) {
               console.log("//// 태그 입력 ////");
-              manageTags(
-                connection,
-                req.user.fc_id,
-                req.body.edu_id,
-                req.body.edu_tags,
-                (err, results) => {
-                  callback(err, null);
-                }
-              );
+              manageTags(connection, req.user.fc_id, req.body.edu_id, req.body.edu_tags, (err, results) => {
+                callback(err, null);
+              });
             } else {
               callback(null, null);
             }
@@ -367,46 +329,30 @@ const manageTags = (_connection, _fcId, _eduId, _tags, _callback) => {
           return tagCount < _tags.length;
         },
         callback => {
-          _connection.query(
-            QUERY.TAG.InsertEduTag,
-            [_fcId, _tags[tagCount]],
-            (err, data) => {
-              if (err) throw err;
+          _connection.query(QUERY.TAG.InsertEduTag, [_fcId, _tags[tagCount]], (err, data) => {
+            if (err) throw err;
 
-              if (data.insertId > 0) {
-                _connection.query(
-                  QUERY.TAG.InsertEduTagMap,
-                  [_eduId, data.insertId],
-                  (err, data) => {
+            if (data.insertId > 0) {
+              _connection.query(QUERY.TAG.InsertEduTagMap, [_eduId, data.insertId], (err, data) => {
+                if (err) throw err;
+              });
+            } else {
+              // 기존의 동일한 이름의 태그가 존재하면, 해당 id 를 map 테이블에 입력한다.
+              _connection.query(QUERY.TAG.SelectTagIdByName, [_fcId, _tags[tagCount]], (err, data) => {
+                if (err) throw err;
+
+                console.log(data);
+
+                if (data[0].id) {
+                  _connection.query(QUERY.TAG.InsertEduTagMap, [_eduId, data[0].id], (err, data) => {
                     if (err) throw err;
-                  }
-                );
-              } else {
-                // 기존의 동일한 이름의 태그가 존재하면, 해당 id 를 map 테이블에 입력한다.
-                _connection.query(
-                  QUERY.TAG.SelectTagIdByName,
-                  [_fcId, _tags[tagCount]],
-                  (err, data) => {
-                    if (err) throw err;
-
-                    console.log(data);
-
-                    if (data[0].id) {
-                      _connection.query(
-                        QUERY.TAG.InsertEduTagMap,
-                        [_eduId, data[0].id],
-                        (err, data) => {
-                          if (err) throw err;
-                        }
-                      );
-                    }
-                  }
-                );
-              }
-              tagCount++;
-              callback(err, data);
+                  });
+                }
+              });
             }
-          );
+            tagCount++;
+            callback(err, data);
+          });
         },
         (err, results) => {
           if (err) {
@@ -431,13 +377,9 @@ EducationService.getCourseList = (req, res, next) => {
       [
         // 교육과정의 강의목록을 조회한다.
         callback => {
-          connection.query(
-            QUERY.EDU.GetCourseListByEduId,
-            [req.user.fc_id, req.params.id],
-            (err, rows) => {
-              callback(err, rows);
-            }
-          );
+          connection.query(QUERY.EDU.GetCourseListByEduId, [req.user.fc_id, req.params.id], (err, rows) => {
+            callback(err, rows);
+          });
         }
         // 전체 강의목록을 조회한다.
         // (callback) => {

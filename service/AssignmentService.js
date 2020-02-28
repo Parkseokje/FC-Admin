@@ -13,15 +13,11 @@ const pool = require("../commons/db_conn_pool");
 AssignmentService.deactivateEduAssignmentById = (_id, _callback) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
-    connection.query(
-      QUERY.ASSIGNMENT.DisableLogAssignEduById,
-      [_id],
-      (err, data) => {
-        connection.release();
-        if (err) throw err;
-        _callback(err, null);
-      }
-    );
+    connection.query(QUERY.ASSIGNMENT.DisableLogAssignEduById, [_id], (err, data) => {
+      connection.release();
+      if (err) throw err;
+      _callback(err, null);
+    });
   });
 };
 
@@ -104,10 +100,7 @@ AssignmentService.modifyLogAssignEdu2 = (_data, _callback) => {
 AssignmentService.create = (_connection, _data, _callback) => {
   let userIdCount = 0;
   let simpleAssignmentId = _data.simple_assignment_id;
-  const logGroupUserId =
-    _data.groupId === undefined
-      ? Util.publishHashByMD5(new Date())
-      : _data.groupId;
+  const logGroupUserId = _data.groupId === undefined ? Util.publishHashByMD5(new Date()) : _data.groupId;
   let userIds = [];
 
   _connection.beginTransaction(err => {
@@ -115,124 +108,111 @@ AssignmentService.create = (_connection, _data, _callback) => {
     if (err) _callback(err, null);
 
     switch (_data.upload_type) {
-      case "excel":
-        if (_data.excel.length > 0) {
+    case "excel":
+      if (_data.excel.length > 0) {
           // 핸드폰 번호로 사용자를 검색한다.
-          _connection.query(
-            QUERY.EDU.GetUserDataByPhone,
-            [_data.excel],
-            (err, data) => {
-              if (err) throw err;
-              if (data.length === 0) {
-                _callback(null, null);
-                return;
-              }
-              for (var index = 0; index < data.length; index++) {
-                userIds.push(data[index].id);
-              }
-              async.whilst(
-                () => {
-                  return userIdCount < userIds.length;
-                },
-                callback => {
-                  // log_group_user 테이블에 차례대로 입력
-                  _connection.query(
-                    QUERY.EDU.InsertIntoLogGroupUser,
-                    [userIds[userIdCount], logGroupUserId],
-                    (err, data) => {
-                      callback(err, null);
-                    }
-                  );
-                  userIdCount++;
-                },
-                (err, data) => {
-                  if (err) {
-                    console.log("----------------------------");
-                    console.log("error:InsertIntoLogGroupUser");
-                    console.error(err);
-                    return _connection.rollback(() => {
-                      _callback(err, null);
-                      return;
-                    });
+        _connection.query(QUERY.EDU.GetUserDataByPhone, [_data.excel], (err, data) => {
+          if (err) throw err;
+          if (data.length === 0) {
+            _callback(null, null);
+            return;
+          }
+          for (var index = 0; index < data.length; index++) {
+            userIds.push(data[index].id);
+          }
+          async.whilst(
+              () => {
+                return userIdCount < userIds.length;
+              },
+              callback => {
+                // log_group_user 테이블에 차례대로 입력
+                _connection.query(
+                  QUERY.EDU.InsertIntoLogGroupUser,
+                  [userIds[userIdCount], logGroupUserId],
+                  (err, data) => {
+                    callback(err, null);
                   }
+                );
+                userIdCount++;
+              },
+              (err, data) => {
+                if (err) {
+                  console.log("----------------------------");
+                  console.log("error:InsertIntoLogGroupUser");
+                  console.error(err);
+                  return _connection.rollback(() => {
+                    _callback(err, null);
+                    return;
+                  });
+                }
 
-                  // log_bind_users 테이블에 입력
-                  if (!_data.log_bind_user_id) {
-                    _connection.query(
-                      QUERY.EDU.InsertIntoLogBindUser,
-                      [
-                        _data.group_name,
-                        _data.group_desc,
-                        _data.admin_id,
-                        logGroupUserId
-                      ],
-                      (err, result) => {
-                        if (err) {
-                          console.log("----------------------------");
-                          console.log("error:InsertIntoLogBindUser");
-                          console.error(err);
-                          return _connection.rollback(() => {
-                            _callback(err, null);
-                            return;
-                          });
-                        } else {
-                          _connection.commit(err => {
-                            if (err) {
-                              return _connection.rollback(() => {
-                                _callback(err, null);
-                                return;
-                              });
-                            } else {
-                              _callback(null, {
-                                insertId: result.insertId,
-                                employeeIds: userIds
-                              });
-                            }
-                          });
-                        }
-                      }
-                    );
-                  } else {
-                    _connection.commit(err => {
+                // log_bind_users 테이블에 입력
+                if (!_data.log_bind_user_id) {
+                  _connection.query(
+                    QUERY.EDU.InsertIntoLogBindUser,
+                    [_data.group_name, _data.group_desc, _data.admin_id, logGroupUserId],
+                    (err, result) => {
                       if (err) {
+                        console.log("----------------------------");
+                        console.log("error:InsertIntoLogBindUser");
+                        console.error(err);
                         return _connection.rollback(() => {
                           _callback(err, null);
                           return;
                         });
                       } else {
-                        _callback(null, null);
+                        _connection.commit(err => {
+                          if (err) {
+                            return _connection.rollback(() => {
+                              _callback(err, null);
+                              return;
+                            });
+                          } else {
+                            _callback(null, {
+                              insertId: result.insertId,
+                              employeeIds: userIds
+                            });
+                          }
+                        });
                       }
-                    });
-                  }
+                    }
+                  );
+                } else {
+                  _connection.commit(err => {
+                    if (err) {
+                      return _connection.rollback(() => {
+                        _callback(err, null);
+                        return;
+                      });
+                    } else {
+                      _callback(null, null);
+                    }
+                  });
                 }
-              );
-            }
-          );
-        } else {
-          _callback({ err: "데이터가 존재하지 않습니다." }, null);
-        }
-        break;
+              }
+            );
+        });
+      } else {
+        _callback({ err: "데이터가 존재하지 않습니다." }, null);
+      }
+      break;
 
-      case "employee":
-        if (_data.upload_employee_ids.length === 0) {
-          _callback(null, null);
-          return;
-        }
+    case "employee":
+      if (_data.upload_employee_ids.length === 0) {
+        _callback(null, null);
+        return;
+      }
 
-        userIds = _data.upload_employee_ids.slice(0);
+      userIds = _data.upload_employee_ids.slice(0);
 
-        async.whilst(
+      async.whilst(
           () => {
             return userIdCount < userIds.length;
           },
           callback => {
-            _connection.query(
-              QUERY.EDU.InsertIntoLogGroupUser,
-              [userIds[userIdCount], logGroupUserId],
-              (err, data) => {
-                callback(err, null);
-              }
-            );
+            _connection.query(QUERY.EDU.InsertIntoLogGroupUser, [userIds[userIdCount], logGroupUserId], (err, data) => {
+              callback(err, null);
+            });
             userIdCount++;
           },
           (err, data) => {
@@ -249,13 +229,7 @@ AssignmentService.create = (_connection, _data, _callback) => {
             if (!_data.log_bind_user_id) {
               _connection.query(
                 QUERY.EDU.InsertIntoLogBindUser,
-                [
-                  _data.group_name,
-                  _data.group_desc,
-                  _data.admin_id,
-                  logGroupUserId,
-                  simpleAssignmentId
-                ],
+                [_data.group_name, _data.group_desc, _data.admin_id, logGroupUserId, simpleAssignmentId],
                 (err, result) => {
                   if (err) {
                     console.log("----------------------------");
@@ -294,10 +268,10 @@ AssignmentService.create = (_connection, _data, _callback) => {
             }
           }
         );
-        break;
+      break;
 
-      default:
-        break;
+    default:
+      break;
     }
   });
 };
@@ -333,16 +307,12 @@ AssignmentService.allocate = (_connection, _data, _callback) => {
         // 신규 입력 또는 교육과정 불러오기를 통한 신규입력일 경우
         if (!_data.isUpdate || _data.is_existed_edu) {
           console.log("trainining_edu 입력");
-          _connection.query(
-            QUERY.EDU.InsertTrainingEdu,
-            [eduId, userData.admin_id],
-            (err, data) => {
-              if (data.insertId !== undefined) {
-                trainingEduId = data.insertId;
-              }
-              callback(err, data);
+          _connection.query(QUERY.EDU.InsertTrainingEdu, [eduId, userData.admin_id], (err, data) => {
+            if (data.insertId !== undefined) {
+              trainingEduId = data.insertId;
             }
-          );
+            callback(err, data);
+          });
         } else {
           callback(null, null);
         }
@@ -363,14 +333,10 @@ AssignmentService.allocate = (_connection, _data, _callback) => {
       },
       callback => {
         console.log("training_users 입력");
-        _connection.query(
-          QUERY.EDU.InsertUserIdInTrainingUsers,
-          [trainingEduId, logBindUserId],
-          (err, data) => {
-            if (err) throw err;
-            callback(err, data);
-          }
-        );
+        _connection.query(QUERY.EDU.InsertUserIdInTrainingUsers, [trainingEduId, logBindUserId], (err, data) => {
+          if (err) throw err;
+          callback(err, data);
+        });
       },
       callback => {
         console.log("log_assign_edu 입력/수정");
@@ -423,47 +389,28 @@ AssignmentService.allocate = (_connection, _data, _callback) => {
  * @param {Object} 전달할 데이터 Object (trainingEduId, assignmentId)
  * @param {Function} _callback 전달할 콜백
  */
-AssignmentService.deleteAllocation = (
-  _connection,
-  { trainingEduId, assignmentId },
-  _callback
-) => {
+AssignmentService.deleteAllocation = (_connection, { trainingEduId, assignmentId }, _callback) => {
   async.series(
     [
       callback => {
-        _connection.query(
-          QUERY.ASSIGNMENT.DeleteTrainingUsersByTrainingEduId,
-          [trainingEduId],
-          (err, rows) => {
-            callback(err, rows);
-          }
-        );
+        _connection.query(QUERY.ASSIGNMENT.DeleteTrainingUsersByTrainingEduId, [trainingEduId], (err, rows) => {
+          callback(err, rows);
+        });
       },
       callback => {
-        _connection.query(
-          QUERY.ASSIGNMENT.DeleteLogAssignEduByTrainingEduId,
-          [trainingEduId],
-          (err, rows) => {
-            callback(err, rows);
-          }
-        );
+        _connection.query(QUERY.ASSIGNMENT.DeleteLogAssignEduByTrainingEduId, [trainingEduId], (err, rows) => {
+          callback(err, rows);
+        });
       },
       callback => {
-        AssignmentService.deleteAssignment(
-          { id: assignmentId },
-          (err, result) => {
-            callback(err, null);
-          }
-        );
+        AssignmentService.deleteAssignment({ id: assignmentId }, (err, result) => {
+          callback(err, null);
+        });
       },
       callback => {
-        _connection.query(
-          QUERY.ASSIGNMENT.DeleteTrainingEduById,
-          [trainingEduId],
-          (err, rows) => {
-            callback(err, rows);
-          }
-        );
+        _connection.query(QUERY.ASSIGNMENT.DeleteTrainingEduById, [trainingEduId], (err, rows) => {
+          callback(err, rows);
+        });
       }
     ],
     (err, results) => {
@@ -489,17 +436,13 @@ AssignmentService.getSimpleAssignmentList = (req, res, next) => {
     async.series(
       [
         callback => {
-          connection.query(
-            QUERY.ASSIGNMENT.SelectSimpleAssignments,
-            [req.user.fc_id],
-            (err, rows) => {
-              if (err) {
-                callback(err, null);
-              } else {
-                callback(null, rows);
-              }
+          connection.query(QUERY.ASSIGNMENT.SelectSimpleAssignments, [req.user.fc_id], (err, rows) => {
+            if (err) {
+              callback(err, null);
+            } else {
+              callback(null, rows);
             }
-          );
+          });
         }
       ],
       (err, results) => {
@@ -534,17 +477,13 @@ AssignmentService.getCoursesToAdd = (req, res, next) => {
     async.series(
       [
         callback => {
-          connection.query(
-            QUERY.ASSIGNMENT.SelectCoursesToAdd,
-            [req.user.fc_id, req.query.edu_id],
-            (err, rows) => {
-              if (err) {
-                callback(err, null);
-              } else {
-                callback(null, rows);
-              }
+          connection.query(QUERY.ASSIGNMENT.SelectCoursesToAdd, [req.user.fc_id, req.query.edu_id], (err, rows) => {
+            if (err) {
+              callback(err, null);
+            } else {
+              callback(null, rows);
             }
-          );
+          });
         }
       ],
       (err, results) => {
@@ -578,45 +517,41 @@ AssignmentService.addCourses = (req, res, next) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
 
-    connection.query(
-      QUERY.EDU.GetEduInfoById,
-      [req.body.edu_id],
-      (err, row) => {
-        if (err) throw err;
-        if (row) {
-          eduCourseGroupId = row[0].course_group_key;
+    connection.query(QUERY.EDU.GetEduInfoById, [req.body.edu_id], (err, row) => {
+      if (err) throw err;
+      if (row) {
+        eduCourseGroupId = row[0].course_group_key;
 
-          // 강의를 입력한다.
-          async.whilst(
-            () => {
-              return courseIdCount < arrCourses.length;
-            },
-            callback => {
-              connection.query(
-                QUERY.EDU.InsertCourseGroupBySelect,
-                [eduCourseGroupId, arrCourses[courseIdCount], eduCourseGroupId],
-                (err, data) => {
-                  callback(err, null);
-                }
-              );
-              courseIdCount++;
-            },
-            (err, results) => {
-              connection.release();
-              if (err) {
-                console.error(err);
-                throw new Error(err);
-              } else {
-                // success
-                return res.json({
-                  success: true
-                });
+        // 강의를 입력한다.
+        async.whilst(
+          () => {
+            return courseIdCount < arrCourses.length;
+          },
+          callback => {
+            connection.query(
+              QUERY.EDU.InsertCourseGroupBySelect,
+              [eduCourseGroupId, arrCourses[courseIdCount], eduCourseGroupId],
+              (err, data) => {
+                callback(err, null);
               }
+            );
+            courseIdCount++;
+          },
+          (err, results) => {
+            connection.release();
+            if (err) {
+              console.error(err);
+              throw new Error(err);
+            } else {
+              // success
+              return res.json({
+                success: true
+              });
             }
-          );
-        }
+          }
+        );
       }
-    );
+    });
   });
 };
 
@@ -630,21 +565,17 @@ AssignmentService.addCourses = (req, res, next) => {
 AssignmentService.getSimpleAssignmentById = (req, res, next, id) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
-    connection.query(
-      QUERY.ASSIGNMENT.SelectSimpleAssignmentById,
-      [id],
-      (err, result) => {
-        connection.release();
-        if (err) {
-          throw new Error(err);
-        } else if (!result) {
-          return res.sendStatus(400);
-        } else {
-          req.assignment = result[0];
-          return next();
-        }
+    connection.query(QUERY.ASSIGNMENT.SelectSimpleAssignmentById, [id], (err, result) => {
+      connection.release();
+      if (err) {
+        throw new Error(err);
+      } else if (!result) {
+        return res.sendStatus(400);
+      } else {
+        req.assignment = result[0];
+        return next();
       }
-    );
+    });
   });
 };
 
@@ -670,17 +601,13 @@ AssignmentService.createSimpleAssignment = (req, res, next) => {
       async.series(
         [
           callback => {
-            connection.query(
-              QUERY.ASSIGNMENT.InsertSimpleAssignment,
-              [req.user.admin_id],
-              (err, rows) => {
-                if (err) {
-                  callback(err, null);
-                } else {
-                  callback(null, rows);
-                }
+            connection.query(QUERY.ASSIGNMENT.InsertSimpleAssignment, [req.user.admin_id], (err, rows) => {
+              if (err) {
+                callback(err, null);
+              } else {
+                callback(null, rows);
               }
-            );
+            });
           }
         ],
         (err, results) => {
@@ -701,9 +628,7 @@ AssignmentService.createSimpleAssignment = (req, res, next) => {
                 });
               } else {
                 // success code
-                return res.redirect(
-                  `/simple_assignment/${results[0].insertId}`
-                );
+                return res.redirect(`/simple_assignment/${results[0].insertId}`);
               }
             });
           }
@@ -735,36 +660,24 @@ AssignmentService.deleteSimpleAssignment = (req, res, next) => {
       async.series(
         [
           callback => {
-            connection.query(
-              QUERY.ASSIGNMENT.DeleteSimpleAssignment,
-              [req.query.id],
-              (err, result) => {
-                callback(err, result);
-              }
-            );
+            connection.query(QUERY.ASSIGNMENT.DeleteSimpleAssignment, [req.query.id], (err, result) => {
+              callback(err, result);
+            });
           },
           callback => {
             if (req.query.log_bind_user_id) {
-              connection.query(
-                QUERY.ASSIGNMENT.DisableLogBindUserById,
-                [req.query.log_bind_user_id],
-                (err, result) => {
-                  callback(err, result);
-                }
-              );
+              connection.query(QUERY.ASSIGNMENT.DisableLogBindUserById, [req.query.log_bind_user_id], (err, result) => {
+                callback(err, result);
+              });
             } else {
               callback(null, null);
             }
           },
           callback => {
             if (req.query.edu_id) {
-              connection.query(
-                QUERY.EDU.DisableEduById,
-                [req.query.edu_id],
-                (err, result) => {
-                  callback(err, result);
-                }
-              );
+              connection.query(QUERY.EDU.DisableEduById, [req.query.edu_id], (err, result) => {
+                callback(err, result);
+              });
             } else {
               callback(null, null);
             }
@@ -816,13 +729,9 @@ AssignmentService.updateSimpleAssignment = (data, _callback) => {
       async.series(
         [
           callback => {
-            connection.query(
-              QUERY.ASSIGNMENT.UpdateSimpleAssignment(data),
-              [],
-              (err, rows) => {
-                callback(err, rows);
-              }
-            );
+            connection.query(QUERY.ASSIGNMENT.UpdateSimpleAssignment(data), [], (err, rows) => {
+              callback(err, rows);
+            });
           }
         ],
         (err, results) => {
@@ -864,22 +773,14 @@ AssignmentService.deleteAssignment = (data, _callback) => {
       async.series(
         [
           callback => {
-            connection.query(
-              QUERY.ASSIGNMENT.DeleteGroupUserBySimpleAssignId(data),
-              [],
-              (err, rows) => {
-                callback(err, rows);
-              }
-            );
+            connection.query(QUERY.ASSIGNMENT.DeleteGroupUserBySimpleAssignId(data), [], (err, rows) => {
+              callback(err, rows);
+            });
           },
           callback => {
-            connection.query(
-              QUERY.ASSIGNMENT.DeleteBindUserBySimpleAssignId(data),
-              [],
-              (err, rows) => {
-                callback(err, rows);
-              }
-            );
+            connection.query(QUERY.ASSIGNMENT.DeleteBindUserBySimpleAssignId(data), [], (err, rows) => {
+              callback(err, rows);
+            });
           }
         ],
         (err, results) => {
@@ -921,13 +822,9 @@ AssignmentService.deleteGroupUserByGroupId = ({ groupId }, _callback) => {
       async.series(
         [
           callback => {
-            connection.query(
-              QUERY.ASSIGNMENT.DeleteLogGroupUserByGroupId,
-              [groupId],
-              (err, result) => {
-                callback(err, result);
-              }
-            );
+            connection.query(QUERY.ASSIGNMENT.DeleteLogGroupUserByGroupId, [groupId], (err, result) => {
+              callback(err, result);
+            });
           }
         ],
         (err, results) => {
@@ -961,18 +858,14 @@ AssignmentService.deleteGroupUserByGroupId = ({ groupId }, _callback) => {
 AssignmentService.getBindUser = ({ logBindUserId }, _callback) => {
   pool.getConnection((err, connection) => {
     if (err) throw err;
-    connection.query(
-      QUERY.EDU.GetAssignmentDataById,
-      [logBindUserId],
-      (err, result) => {
-        connection.release();
-        if (err) {
-          throw new Error(err);
-        } else {
-          _callback(result);
-        }
+    connection.query(QUERY.EDU.GetAssignmentDataById, [logBindUserId], (err, result) => {
+      connection.release();
+      if (err) {
+        throw new Error(err);
+      } else {
+        _callback(result);
       }
-    );
+    });
   });
 };
 
