@@ -9,7 +9,8 @@ exports.sendMessage = (subject, phones, msg, callback) => {
         "NTgyNy0xNDkwNTk2MjYzNDg1LTExN2FiMjQ5LTJiOGQtNGRiOS1iYWIyLTQ5MmI4ZDlkYjk5YQ=="
     })
     .send({
-      send_phone: "07088450500",
+      send_phone: "1644-3669",
+      // send_phone: "07088450500",
       dest_phone: phones,
       subject: subject,
       msg_body: msg

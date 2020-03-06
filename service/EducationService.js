@@ -139,6 +139,7 @@ function executeCourseGroup(data, callback) {
 }
 
 EducationService.create = (req, res, next) => {
+  console.log("EducationService.create");
   let eduId;
   let isExistedEdu = req.body.is_existed_edu === "Y"; // 기존 교육과정을 불러왔는지 여부
   let trainingEduId;
@@ -159,8 +160,9 @@ EducationService.create = (req, res, next) => {
         [
           // 교육과정을 수정/입력한다.
           callback => {
-            if (req.body.edu_id && !isExistedEdu) {
+            if (req.body.edu_id) {
               eduId = req.body.edu_id;
+              console.log(" 교육과정 수정 ");
               connection.query(
                 QUERY.EDU.UpdateEdu,
                 [req.body.name, req.body.desc, req.body.can_replay, req.body.can_advance, eduId],
@@ -169,7 +171,7 @@ EducationService.create = (req, res, next) => {
                 }
               );
             } else {
-              console.log("//// 교육과정 입력 ////");
+              console.log(" 교육과정 입력 ");
               connection.query(
                 QUERY.EDU.InsertEdu,
                 [
@@ -191,7 +193,7 @@ EducationService.create = (req, res, next) => {
           },
           callback => {
             if (req.body.edu_tags.length > 0) {
-              console.log("//// 태그 입력 ////");
+              console.log(" 태그 입력 ");
               manageTags(connection, req.user.fc_id, req.body.edu_id, req.body.edu_tags, (err, results) => {
                 callback(err, null);
               });
@@ -202,7 +204,7 @@ EducationService.create = (req, res, next) => {
           // 기존 교육생 배정내역을 삭제한다.
           // callback => {
           //   if (trainingEduId !== undefined) {
-          //     console.log('//// 교육생 배정내역 삭제 ////');
+          //     console.log(' 교육생 배정내역 삭제 ');
           //     AssignmentService.deleteAllocation(connection, {
           //       trainingEduId: req.body.training_edu_id,
           //       assignmentId: parseInt(req.body.assigment_id)
@@ -217,9 +219,9 @@ EducationService.create = (req, res, next) => {
           // 교육생 배정내역을 생성한다.
           callback => {
             if (isUpdate) {
-              console.log("//// 교육생 배정내역 수정 ////");
+              console.log(" 교육생 배정내역 수정 ");
             } else {
-              console.log("//// 교육생 배정내역 생성 ////");
+              console.log(" 교육생 배정내역 생성 ");
             }
             AssignmentService.allocate(
               connection,
@@ -242,7 +244,7 @@ EducationService.create = (req, res, next) => {
           // 간편 배정내역을 수정한다.
           callback => {
             if (req.body.assigment_id !== undefined) {
-              console.log("//// 간편배정내역 수정 ////");
+              console.log(" 간편배정내역 수정 ");
               AssignmentService.updateSimpleAssignment(
                 {
                   id: parseInt(req.body.assigment_id),
@@ -260,7 +262,7 @@ EducationService.create = (req, res, next) => {
           },
           // 포인트 저장
           callback => {
-            console.log("//// 포인트 정보 입력 ////");
+            console.log(" 포인트 정보 입력 ");
             connection.query(
               QUERY.EDU.SetPointWeight,
               [
