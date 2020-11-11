@@ -49,7 +49,7 @@ exports.publishHashByMD5 = value => {
 /**
  * 정규표현식을 이용하여, 숫자만 추출한다.
  */
-exports.getDigitOnly = function(str) {
+exports.getDigitOnly = function (str) {
   return str.replace(/[^0-9]/g, "");
 };
 
@@ -110,39 +110,6 @@ exports.getLogoInfo = (req, res, next) => {
   // console.log('host: ' + req.headers.host);
 
   switch (req.headers.host) {
-    case "waffle.edu1004.kr":
-      logoImageName = "waffle.kosc.png";
-      logoName = "와플대학";
-      theme = "skin-yellow-light";
-      themeOfTile = "bg-blue-gradient";
-      themeOfProgressBar = "progress-bar-yellow";
-      copyright = "Waffle university coop";
-      vodUrl = "http://pcst.aquan.waffle.edu1004.kr/orangenamu/waffle/";
-      uploadFolder = "/waffle";
-      break;
-
-    case "momstouch.edu1004.kr":
-      logoImageName = "momstouch.png";
-      logoName = "맘스터치";
-      theme = "skin-red-light";
-      themeOfTile = "bg-yellow-gradient";
-      themeOfProgressBar = "progress-bar-yellow";
-      copyright = "MOM'S TOUCH";
-      vodUrl = "http://pcst.aquan.momstouch.edu1004.kr/orangenamu/momstouch/";
-      uploadFolder = "/momstouch";
-      break;
-
-    case "homesfood.edu1004.kr":
-      logoImageName = "homesfood-dark.png";
-      logoName = "홈스푸드";
-      theme = "skin-black";
-      themeOfTile = "bg-black-gradient";
-      themeOfProgressBar = "progress-bar-yellow";
-      copyright = "홈스푸드";
-      vodUrl = "http://pcst.aquan.homesfood.edu1004.kr/orangenamu/homesfood/";
-      uploadFolder = "/homesfood";
-      break;
-
     case "artandheart.edu1004.kr":
       logoImageName = "artandheart.png";
       logoName = "아트앤하트";
@@ -153,6 +120,18 @@ exports.getLogoInfo = (req, res, next) => {
       vodUrl =
         "http://pcst.aquan.artandheart.edu1004.kr/orangenamu/artandheart/";
       uploadFolder = "/artandheart";
+      break;
+
+    case "pspmng.edu1004.kr":
+      logoImageName = "pspfnd2.png";
+      logoName = "피에스피에프앤디주식회사";
+      theme = "skin-red-light";
+      themeOfTile = "bg-light-red-gradient";
+      themeOfProgressBar = "progress-bar-yellow";
+      copyright = "피에스피에프앤디주식회사";
+      vodUrl =
+        "http://pcst.aquan.pspfnd.edu1004.kr/orangenamu/pspfnd/";
+      uploadFolder = "/pspfnd";
       break;
 
     case "dev.edu1004.kr":
