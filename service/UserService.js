@@ -13,10 +13,10 @@ const pool = require("../commons/db_conn_pool");
  * 관리자를 비활성화 한다.
  * _id: users 테이블의 id
  */
-UserService.deactivateAdminById = function(_id, _callback) {
-  pool.getConnection(function(err, connection) {
+UserService.deactivateAdminById = function (_id, _callback) {
+  pool.getConnection(function (err, connection) {
     if (err) throw err;
-    connection.query(QUERY.ADMIN.DisableAdminById, [_id], function(err, data) {
+    connection.query(QUERY.ADMIN.DisableAdminById, [_id], function (err, data) {
       connection.release();
       if (err) throw err;
       _callback(err, null);
@@ -28,10 +28,10 @@ UserService.deactivateAdminById = function(_id, _callback) {
  * 직원을 비활성화 한다.
  * _id: users 테이블의 id
  */
-UserService.deactivateEmployeeById = function(_id, _callback) {
-  pool.getConnection(function(err, connection) {
+UserService.deactivateEmployeeById = function (_id, _callback) {
+  pool.getConnection(function (err, connection) {
     if (err) throw err;
-    connection.query(QUERY.EMPLOYEE.DisableEmployeeById, [_id], function(
+    connection.query(QUERY.EMPLOYEE.DeleteEmployeeById, [_id], function (
       err,
       data
     ) {
@@ -43,13 +43,14 @@ UserService.deactivateEmployeeById = function(_id, _callback) {
 };
 
 /**
- * 점포을 비활성화 한다.
+ * 점포를 삭제한다.
  * _id: branch 테이블의 id
  */
-UserService.deactivateBranchById = function(_id, _callback) {
-  pool.getConnection(function(err, connection) {
+UserService.deactivateBranchById = function (_id, _callback) {
+  pool.getConnection(function (err, connection) {
     if (err) throw err;
-    connection.query(QUERY.EMPLOYEE.DisableBranchById, [_id], function(
+    connection.query(QUERY.EMPLOYEE.DeleteBranchById, [_id], function (
+      // connection.query(QUERY.EMPLOYEE.DisableBranchById, [_id], function(
       err,
       data
     ) {
@@ -64,10 +65,10 @@ UserService.deactivateBranchById = function(_id, _callback) {
  * 직책을 비활성화 한다.
  * _id: duty 테이블의 id
  */
-UserService.deactivateDutyById = function(_id, _callback) {
-  pool.getConnection(function(err, connection) {
+UserService.deactivateDutyById = function (_id, _callback) {
+  pool.getConnection(function (err, connection) {
     if (err) throw err;
-    connection.query(QUERY.EMPLOYEE.DisableDutyById, [_id], function(
+    connection.query(QUERY.EMPLOYEE.DisableDutyById, [_id], function (
       err,
       data
     ) {
@@ -84,7 +85,7 @@ UserService.deactivateDutyById = function(_id, _callback) {
  * @param list
  * @param cb
  */
-UserService.extractUserIdFromList = function(list, cb) {
+UserService.extractUserIdFromList = function (list, cb) {
   var user_id = [];
   var phone = [];
 
@@ -92,7 +93,7 @@ UserService.extractUserIdFromList = function(list, cb) {
     phone.push("0" + list[i].phone.toString());
   }
 
-  connection.query(QUERY.EDU.GetUserDataByPhone, [phone], function(err, rows) {
+  connection.query(QUERY.EDU.GetUserDataByPhone, [phone], function (err, rows) {
     if (err) {
       cb(err, null);
     } else {
@@ -132,7 +133,7 @@ UserService.extractUserIdFromList = function(list, cb) {
  */
 var __pointer = 0;
 var __sizeOfUserId = 0;
-UserService.insertUserDataInGroupUser = function(user_id, group_id, cb) {
+UserService.insertUserDataInGroupUser = function (user_id, group_id, cb) {
   if (__pointer === 0) {
     __sizeOfUserId = user_id.length;
   }
@@ -140,7 +141,7 @@ UserService.insertUserDataInGroupUser = function(user_id, group_id, cb) {
   connection.query(
     QUERY.EDU.InsertIntoLogGroupUser,
     [user_id[__pointer], group_id],
-    function(err, result) {
+    function (err, result) {
       if (err) {
         console.error(err);
       } else {
@@ -162,8 +163,8 @@ UserService.insertUserDataInGroupUser = function(user_id, group_id, cb) {
  * @param group_id
  * @param cb
  */
-UserService.extractUserIdByGroupId = function(group_id, cb) {
-  connection.query(QUERY.EDU.GetUserListByGroupId, [group_id], function(
+UserService.extractUserIdByGroupId = function (group_id, cb) {
+  connection.query(QUERY.EDU.GetUserListByGroupId, [group_id], function (
     err,
     rows
   ) {
@@ -201,7 +202,7 @@ UserService.InsertUsersWithTrainingEduId = (user_id, training_edu_id, cb) => {
   connection.query(
     QUERY.EDU.InsertUserIdInTrainingUsers,
     [user_id[__pointer], training_edu_id],
-    function(err, result) {
+    function (err, result) {
       if (err) {
         console.error(err);
         __error.push(err);
@@ -221,7 +222,7 @@ UserService.InsertUsersWithTrainingEduId = (user_id, training_edu_id, cb) => {
 /**
  * 엑셀업로드로 직원을 생성한다.
  */
-UserService.createUserByExcel = function(_connection, _data, _callback) {
+UserService.createUserByExcel = function (_connection, _data, _callback) {
   var _count = 0;
   var _excel_data = _data.excel_data;
   var _user = _data.user;
@@ -270,7 +271,7 @@ UserService.createUserByExcel = function(_connection, _data, _callback) {
                       duty_id,
                       branch_id
                     ],
-                    function(err, data) {
+                    function (err, data) {
                       // console.log(query.sql);
                       if (err) console.log(err);
                       // 다음 엑셀 데이터를 읽기 위해 카운터를 증가시킨다.
@@ -285,17 +286,17 @@ UserService.createUserByExcel = function(_connection, _data, _callback) {
         }
       },
       // async.whilst 의 최종 callback
-      function(err, data) {
+      function (err, data) {
         if (err) {
           console.error(err);
-          return _connection.rollback(function() {
+          return _connection.rollback(function () {
             _callback(err, null);
             return;
           });
         } else {
-          _connection.commit(function(err) {
+          _connection.commit(function (err) {
             if (err) {
-              return _connection.rollback(function() {
+              return _connection.rollback(function () {
                 _callback(err, null);
                 return;
               });
@@ -310,14 +311,14 @@ UserService.createUserByExcel = function(_connection, _data, _callback) {
   });
 };
 
-UserService.createBranchOrSelect = function(
+UserService.createBranchOrSelect = function (
   _connection,
   _branch,
   _fc_id,
   _callback
 ) {
   // console.log('branch select or insert ..');
-  _connection.query(QUERY.EMPLOYEE.CreateBranch, [_branch, _fc_id], function(
+  _connection.query(QUERY.EMPLOYEE.CreateBranch, [_branch, _fc_id], function (
     err,
     data
   ) {
@@ -329,7 +330,7 @@ UserService.createBranchOrSelect = function(
       _connection.query(
         QUERY.EMPLOYEE.GetBranchByName,
         [_fc_id, _branch],
-        function(err, data) {
+        function (err, data) {
           _callback(err, data[0].id);
         }
       );
@@ -337,14 +338,14 @@ UserService.createBranchOrSelect = function(
   });
 };
 
-UserService.createDutyOrSelect = function(
+UserService.createDutyOrSelect = function (
   _connection,
   _duty,
   _fc_id,
   _callback
 ) {
   // console.log('duty select or insert ..');
-  _connection.query(QUERY.EMPLOYEE.CreateDuty, [_duty, _fc_id], function(
+  _connection.query(QUERY.EMPLOYEE.CreateDuty, [_duty, _fc_id], function (
     err,
     data
   ) {
@@ -353,7 +354,7 @@ UserService.createDutyOrSelect = function(
       _callback(err, data.insertId);
     } else {
       // 이미 존재하는 직책일 경우 기존 직책 ID 를 조회한다.
-      _connection.query(QUERY.EMPLOYEE.GetDutyByName, [_fc_id, _duty], function(
+      _connection.query(QUERY.EMPLOYEE.GetDutyByName, [_fc_id, _duty], function (
         err,
         data
       ) {

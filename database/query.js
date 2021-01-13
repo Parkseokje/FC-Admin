@@ -147,11 +147,17 @@ QUERY.EMPLOYEE = {
     "   AND b.`active` = true " +
     "   AND b.`name` = ?; ",
 
-  // 점포을 비활성화 한다.
+  // 직원을 비활성화 한다.
   DisableEmployeeById: "UPDATE `users` SET `active` = 0 WHERE `id` = ?; ",
 
-  // 점포을 비활성화 한다.
+  // 직원을 삭제한다.
+  DeleteEmployeeById: "DELETE FROM `users` WHERE `id` = ?; ",
+
+  // 점포를 비활성화 한다.
   DisableBranchById: "UPDATE `branch` SET `active` = 0 WHERE `id` = ?; ",
+
+  // 점포를 삭제한다.
+  DeleteBranchById: "DELETE FROM `branch` WHERE `id` = ?; ",
 
   // 직책을 조회한다.
   GetDuty:
